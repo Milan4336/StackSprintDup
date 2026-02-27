@@ -4,6 +4,12 @@ This document tracks the technical evolution of the Fraud Command Center, arrang
 
 ---
 
+## [Patch v3.9] — Today
+### Surgical Intelligence & Deployment Sync
+- **Autonomous Response Logic**: Fixed the connection hang in the Autonomous Actions feed with proactive socket lifecycle guards.
+- **Cinematic Hover Polish**: Eliminated bright chart hover washouts, replacing default cursors with subtle HUD-consistent indigo and blue highlights.
+- **Deployment Parity**: Synchronized all surgical visual fixes across the global repository for v3.9 deployment.
+
 ## [Release v3.8] — Today
 ### Ultra-HUD & Mission Control Overhaul
 - **Aesthetic Reconstruct**: Transformed the interface into a high-fidelity Ultra-HUD environment using glassmorphism and corner-clipped tactical panels.

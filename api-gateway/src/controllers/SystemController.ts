@@ -20,6 +20,15 @@ export class SystemController {
   updates = async (_req: Request, res: Response): Promise<void> => {
     const updatesList = [
       {
+        version: 'Patch v3.9',
+        date: 'Today',
+        title: 'Surgical Intelligence & Deployment Sync',
+        description: 'Resolved the Autonomous Actions "Connecting..." hang with proactive socket state checks. Refined the cinematic chart hover aesthetics to eliminate bright background washouts. Synchronized the global repository with surgical v3.8+ deployment parity.',
+        type: 'fix',
+        icon: 'Shield',
+        color: 'emerald'
+      },
+      {
         version: 'Release v3.8',
         date: 'Today',
         title: 'Ultra-HUD & Mission Control Overhaul',

@@ -1,4 +1,4 @@
-# FRAUD COMMAND CENTER (Cinematic Intelligence Edition)
+# FRAUD COMMAND CENTER (Ultra-HUD Editon v3.9)
 
 A high-performance, cloud-native fraud intelligence platform designed for realtime detection, deep forensic investigation, and autonomous risk response. This platform has been evolved into a high-fidelity "Cinematic Ultra-HUD" environment, balancing expert heuristics with advanced ML ensemble scoring.
 

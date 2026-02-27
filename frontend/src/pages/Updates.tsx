@@ -30,7 +30,9 @@ export const Updates = () => {
         staleTime: 5 * 60 * 1000
     });
 
-    const updatesResponse = [...(query.data || [])];
+    const updatesResponse = [...(query.data || [])].sort((a, b) =>
+        b.version.localeCompare(a.version, undefined, { numeric: true, sensitivity: 'base' })
+    );
 
     return (
         <div className="space-y-8 pb-12">
