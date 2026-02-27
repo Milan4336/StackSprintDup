@@ -1,6 +1,6 @@
 import { Socket, io } from 'socket.io-client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const WS_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 let socket: Socket | null = null;
 
@@ -8,14 +8,15 @@ export const getSocket = (): Socket => {
   const token = localStorage.getItem('token');
 
   if (!socket) {
-    socket = io(API_URL, {
+    socket = io(WS_URL, {
       transports: ['websocket'],
       auth: token ? { token } : undefined
     });
   } else if (!socket.connected) {
-    // Crucial fix: If socket exists but is disconnected (e.g., after a logout/login cycle or early failure),
-    // ensure the auth payload is updated with the *latest* token before anyone tries to connectLive.
+    // If socket exists but is disconnected (e.g., rejected early by server before auth),
+    // update the auth payload and explicitly force a reconnect.
     socket.auth = token ? { token } : {};
+    socket.connect();
   }
 
   return socket;

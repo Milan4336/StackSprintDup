@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AnalyticsCards } from '../components/dashboard/AnalyticsCards';
 import { DeviceFingerprintPanel } from '../components/dashboard/DeviceFingerprintPanel';
@@ -14,6 +15,16 @@ export const Analytics = () => {
   const { transactions, stats, loading } = useTransactions();
   const alerts = useDashboardStore((state) => state.alerts);
   const devices = useDashboardStore((state) => state.devices);
+  const loadDashboardData = useDashboardStore((state) => state.loadDashboardData);
+  const connectLive = useDashboardStore((state) => state.connectLive);
+  const disconnectLive = useDashboardStore((state) => state.disconnectLive);
+
+  useEffect(() => {
+    loadDashboardData();
+    connectLive();
+    return () => disconnectLive();
+  }, [loadDashboardData, connectLive, disconnectLive]);
+
   const activeAlerts = alerts.filter((alert) => alert.status !== 'resolved').length;
   const fraudPrevented = Math.round(transactions.filter((tx) => tx.action === 'BLOCK').length * 1.25);
 
