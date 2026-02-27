@@ -30,10 +30,8 @@ export const updateSocketAuth = (token: string | null): void => {
 
   if (token) {
     socket.auth = { token };
-    // Force a reconnect with the new credentials if disconnected
-    if (!socket.connected) {
-      socket.connect();
-    }
+    // Force a full connection bounce to re-run auth middleware
+    socket.disconnect().connect();
   } else {
     socket.auth = {};
     socket.disconnect();
