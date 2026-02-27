@@ -7,8 +7,9 @@ export class ModelMetricsService {
 
   constructor(
     private readonly modelMetricRepository: ModelMetricRepository,
-    private readonly transactionRepository: TransactionRepository
-  ) {}
+    private readonly transactionRepository: TransactionRepository,
+    private readonly mlServiceClient: any
+  ) { }
 
   async recordSnapshotIfDue(): Promise<void> {
     const now = Date.now();
@@ -50,6 +51,15 @@ export class ModelMetricsService {
         ? 'Distribution shift detected in fraud rate/score compared to previous snapshot.'
         : undefined
     });
+
+    if (driftDetected) {
+      console.log('[MODEL_HEALTH] Drift detected. Triggering autonomous retraining pipeline...');
+      try {
+        await this.mlServiceClient.triggerRetrain();
+      } catch (err) {
+        console.error('[MODEL_HEALTH] Failed to trigger autonomous retrain:', err);
+      }
+    }
   }
 
   async listRecent(limit = 100) {

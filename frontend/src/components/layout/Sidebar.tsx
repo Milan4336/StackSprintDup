@@ -8,8 +8,13 @@ import {
   Globe,
   LayoutDashboard,
   ListChecks,
+  Rocket,
   Settings,
-  ShieldAlert
+  ShieldAlert,
+  Network,
+  Users,
+  Zap,
+  Cpu
 } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -25,6 +30,10 @@ const menu = [
   { label: 'Cases', to: '/cases', icon: BellRing },
   { label: 'Fraud Radar', to: '/radar', icon: Globe },
   { label: 'Analytics', to: '/analytics', icon: Gauge },
+  { label: 'Model Health', to: '/model-health', icon: Cpu },
+  { label: 'User Behavior', to: '/behavior-profiles', icon: Users },
+  { label: 'Fraud Network', to: '/fraud-network', icon: Network },
+  { label: 'System Updates', to: '/updates', icon: Zap },
   { label: 'System Health', to: '/system', icon: Activity },
   { label: 'Settings', to: '/settings', icon: Settings }
 ];

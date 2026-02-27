@@ -15,7 +15,9 @@ export const authMiddleware = (req: Request, _res: Response, next: NextFunction)
 
 export const roleMiddleware = (allowedRoles: Array<'admin' | 'analyst'>) =>
   (req: Request, _res: Response, next: NextFunction): void => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    // Explicit comparison to bypass strict array-includes issues in some TS environments
+    const userRole = req.user?.role;
+    if (!userRole || !allowedRoles.some(role => String(role) === String(userRole))) {
       throw new AppError('Forbidden', 403);
     }
     next();

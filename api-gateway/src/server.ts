@@ -21,7 +21,12 @@ const bootstrap = async (): Promise<void> => {
 
     // Connect Mongo in background
     connectMongo()
-      .then(() => logger.info('Mongo connected'))
+      .then(() => {
+        logger.info('Mongo connected');
+        import('./services/DashboardIntelligenceService').then(({ dashboardIntelligenceService }) => {
+          dashboardIntelligenceService.startBackgroundWorker();
+        });
+      })
       .catch((error) =>
         logger.error({ error }, 'Mongo connection failed')
       );

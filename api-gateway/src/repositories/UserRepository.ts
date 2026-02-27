@@ -10,7 +10,8 @@ export class UserRepository {
   async upsert(
     email: string,
     password: string,
-    role: 'admin' | 'analyst'
+    role: 'admin' | 'analyst' | 'user',
+    userId?: string
   ): Promise<UserDocument> {
 
     try {
@@ -24,9 +25,11 @@ export class UserRepository {
 
       // Create new user safely
       const user = new UserModel({
+        userId: userId || email,
         email,
         password,
-        role
+        role,
+        status: 'ACTIVE'
       });
 
       await user.save();

@@ -72,23 +72,24 @@ export class MlServiceClient {
     }
 
     const startedAt = Date.now();
-    const response = await axios.post<{
-      fraudScore: number;
-      isFraud: boolean;
-      confidence: number;
-      modelScores: Record<string, number>;
-      modelWeights: Record<string, number>;
-      explanations: FraudExplanationItem[];
-    }>(`${env.ML_SERVICE_URL}/predict`, payload, {
-      timeout: 2500
-    }).catch((error: unknown) => {
+    try {
+      const response = await axios.post<{
+        fraudScore: number;
+        isFraud: boolean;
+        confidence: number;
+        modelScores: Record<string, number>;
+        modelWeights: Record<string, number>;
+        explanations: FraudExplanationItem[];
+      }>(`${env.ML_SERVICE_URL}/predict`, payload, {
+        timeout: 2500
+      });
+      this.markSuccess(Date.now() - startedAt);
+      return response.data;
+    } catch (error: any) {
       const reason = error instanceof Error ? error.message : 'Unknown ML error';
       this.markFailure(reason);
       throw error;
-    });
-
-    this.markSuccess(Date.now() - startedAt);
-    return response.data;
+    }
   }
 
   async healthCheck(): Promise<void> {
@@ -103,6 +104,20 @@ export class MlServiceClient {
       lastError: this.lastError,
       circuitOpenUntil: this.circuitOpenUntil ? new Date(this.circuitOpenUntil).toISOString() : null
     };
+  }
+
+  async triggerRetrain(): Promise<{ message: string }> {
+    try {
+      const resp = await axios.post<{ message: string }>(
+        `${env.ML_SERVICE_URL}/model/retrain`,
+        {},
+        { timeout: 30000 }
+      );
+      return resp.data;
+    } catch (error: any) {
+      const reason = error instanceof Error ? error.message : 'Retrain trigger failed';
+      throw new Error(reason);
+    }
   }
 
   async fetchRemoteModelInfo(): Promise<any> {

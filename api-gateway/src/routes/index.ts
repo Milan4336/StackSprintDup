@@ -130,8 +130,11 @@ const authController = new AuthController(authService);
 
 const graphController = new GraphController();
 
+import { dashboardRoutes } from './dashboard.routes';
+
 export const router = Router();
 
+router.use('/api/v1/dashboard', authMiddleware, dashboardRoutes);
 router.get('/api/v1/graph', authMiddleware, asyncHandler(graphController.getNetwork));
 
 router.post('/api/v1/auth/register', validate(registerSchema), asyncHandler(authController.register));

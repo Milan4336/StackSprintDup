@@ -11,7 +11,7 @@ export class SimulationService {
     private readonly transactionService: TransactionService,
     private readonly eventBusService: EventBusService,
     private readonly settingsService: SettingsService
-  ) {}
+  ) { }
 
   async startSimulation(count = 50): Promise<{ generated: number }> {
     const runtime = await this.settingsService.getRuntimeConfig();
@@ -19,6 +19,15 @@ export class SimulationService {
       throw new AppError('Simulation mode is disabled in settings', 403);
     }
 
+    // Fire and forget the simulation to prevent HTTP timeouts
+    this.runSimulationTask(count).catch((err) => {
+      console.error('Simulation background task failed:', err);
+    });
+
+    return { generated: count };
+  }
+
+  private async runSimulationTask(count: number): Promise<void> {
     await this.eventBusService.publishSimulationEvent({
       type: 'simulation.started',
       count,
@@ -40,6 +49,9 @@ export class SimulationService {
         deviceId: i % 5 === 0 ? `unknown-${uuidv4().slice(0, 6)}` : `device-${(i % 20) + 1}`,
         ipAddress: `10.0.${(i % 10) + 1}.${(i % 200) + 1}`,
       });
+
+      // Small delay between transactions to prevent overwhelming the event bus or Redis
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
     await this.eventBusService.publishSimulationEvent({
@@ -47,7 +59,5 @@ export class SimulationService {
       count,
       completedAt: new Date().toISOString()
     });
-
-    return { generated: count };
   }
 }

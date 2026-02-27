@@ -105,6 +105,7 @@ const normalizeTransaction = (raw: Partial<Transaction>): Transaction => {
     riskLevel,
     isFraud: Boolean(raw.isFraud ?? riskLevel === 'High'),
     geoVelocityFlag: Boolean(raw.geoVelocityFlag ?? false),
+    ruleReasons: Array.isArray(raw.ruleReasons) ? raw.ruleReasons : [],
     explanations: raw.explanations
   };
 };
@@ -226,18 +227,9 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    const socket: Socket = getSocket() ?? connectSocket();
-
-    const onLiveTransaction = (payload: Partial<Transaction>) => {
-      addTransaction(normalizeTransaction(payload));
-    };
-
-    socket.on('transactions.live', onLiveTransaction);
-
-    return () => {
-      socket.off('transactions.live', onLiveTransaction);
-    };
+    // Legacy global socket listener removed.
+    // Realtime events are now handled by page-specific Zustand slices
+    // (e.g. useTransactionsSlice) to prevent global re-renders.
   }, [addTransaction, isAuthenticated]);
 
   const value = useMemo<TransactionContextValue>(

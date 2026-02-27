@@ -17,8 +17,10 @@ export const Settings = () => {
     highAmountThreshold: 5000,
     velocityWindowMinutes: 5,
     velocityTxThreshold: 5,
-    scoreRuleWeight: 0.6,
-    scoreMlWeight: 0.4,
+    scoreRuleWeight: 0.20,
+    scoreMlWeight: 0.40,
+    scoreBehaviorWeight: 0.25,
+    scoreGraphWeight: 0.15,
     autonomousAlertThreshold: 80,
     simulationMode: false
   });
@@ -31,6 +33,8 @@ export const Settings = () => {
       velocityTxThreshold: settingsQuery.data.velocityTxThreshold,
       scoreRuleWeight: settingsQuery.data.scoreRuleWeight,
       scoreMlWeight: settingsQuery.data.scoreMlWeight,
+      scoreBehaviorWeight: settingsQuery.data.scoreBehaviorWeight,
+      scoreGraphWeight: settingsQuery.data.scoreGraphWeight,
       autonomousAlertThreshold: settingsQuery.data.autonomousAlertThreshold,
       simulationMode: settingsQuery.data.simulationMode
     });
@@ -97,7 +101,7 @@ export const Settings = () => {
             />
           </label>
           <label className="text-sm text-slate-700 dark:text-slate-200">
-            Rule Weight
+            Rule Weight (0.20)
             <input
               className="input mt-1"
               type="number"
@@ -109,7 +113,7 @@ export const Settings = () => {
             />
           </label>
           <label className="text-sm text-slate-700 dark:text-slate-200">
-            ML Weight
+            ML Weight (0.40)
             <input
               className="input mt-1"
               type="number"
@@ -118,6 +122,30 @@ export const Settings = () => {
               step={0.01}
               value={form.scoreMlWeight}
               onChange={(event) => setForm((prev) => ({ ...prev, scoreMlWeight: Number(event.target.value) }))}
+            />
+          </label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Behavior Weight (0.25)
+            <input
+              className="input mt-1"
+              type="number"
+              min={0}
+              max={1}
+              step={0.01}
+              value={form.scoreBehaviorWeight}
+              onChange={(event) => setForm((prev) => ({ ...prev, scoreBehaviorWeight: Number(event.target.value) }))}
+            />
+          </label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Graph Weight (0.15)
+            <input
+              className="input mt-1"
+              type="number"
+              min={0}
+              max={1}
+              step={0.01}
+              value={form.scoreGraphWeight}
+              onChange={(event) => setForm((prev) => ({ ...prev, scoreGraphWeight: Number(event.target.value) }))}
             />
           </label>
           <label className="text-sm text-slate-700 dark:text-slate-200">

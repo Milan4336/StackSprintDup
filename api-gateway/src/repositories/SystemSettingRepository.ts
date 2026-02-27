@@ -15,6 +15,8 @@ export class SystemSettingRepository {
       velocityTxThreshold: env.VELOCITY_TX_THRESHOLD,
       scoreRuleWeight: env.SCORE_RULE_WEIGHT,
       scoreMlWeight: env.SCORE_ML_WEIGHT,
+      scoreBehaviorWeight: env.SCORE_BEHAVIOR_WEIGHT,
+      scoreGraphWeight: env.SCORE_GRAPH_WEIGHT,
       autonomousAlertThreshold: env.AUTONOMOUS_ALERT_THRESHOLD,
       simulationMode: true
     });

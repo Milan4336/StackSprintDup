@@ -48,6 +48,8 @@ export const updateSettingsSchema = z.object({
   velocityTxThreshold: z.number().int().min(1).max(200).optional(),
   scoreRuleWeight: z.number().min(0).max(1).optional(),
   scoreMlWeight: z.number().min(0).max(1).optional(),
+  scoreBehaviorWeight: z.number().min(0).max(1).optional(),
+  scoreGraphWeight: z.number().min(0).max(1).optional(),
   autonomousAlertThreshold: z.number().min(1).max(100).optional(),
   simulationMode: z.boolean().optional()
 });

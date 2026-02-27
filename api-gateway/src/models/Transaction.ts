@@ -17,6 +17,8 @@ export interface TransactionDocument extends Document {
   action: 'ALLOW' | 'STEP_UP_AUTH' | 'BLOCK';
   ruleScore: number;
   mlScore: number;
+  behaviorScore?: number;
+  graphScore?: number;
   mlStatus: 'HEALTHY' | 'DEGRADED' | 'OFFLINE';
   modelVersion: string;
   modelName: string;
@@ -27,6 +29,7 @@ export interface TransactionDocument extends Document {
   riskLevel: 'Low' | 'Medium' | 'High';
   isFraud: boolean;
   geoVelocityFlag?: boolean;
+  ruleReasons?: string[];
   explanations?: FraudExplanationItem[];
   createdAt: Date;
   updatedAt: Date;
@@ -58,6 +61,8 @@ const transactionSchema = new Schema<TransactionDocument>(
     action: { type: String, enum: ['ALLOW', 'STEP_UP_AUTH', 'BLOCK'], required: true, index: true },
     ruleScore: { type: Number, required: true },
     mlScore: { type: Number, required: true },
+    behaviorScore: { type: Number, required: false, default: 0 },
+    graphScore: { type: Number, required: false, default: 0 },
     mlStatus: { type: String, enum: ['HEALTHY', 'DEGRADED', 'OFFLINE'], required: true, index: true },
     modelVersion: { type: String, required: true },
     modelName: { type: String, required: true },
@@ -68,6 +73,7 @@ const transactionSchema = new Schema<TransactionDocument>(
     riskLevel: { type: String, enum: ['Low', 'Medium', 'High'], required: true, index: true },
     isFraud: { type: Boolean, required: true, index: true },
     geoVelocityFlag: { type: Boolean, required: false, default: false },
+    ruleReasons: { type: [String], default: [] },
     explanations: { type: [explanationItemSchema], default: [] }
   },
   { timestamps: true, collection: 'transactions' }

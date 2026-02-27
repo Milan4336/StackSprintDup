@@ -7,10 +7,11 @@ import { AuditService } from './AuditService';
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly auditService: AuditService
-  ) {}
+    private readonly auditService: AuditService,
+    private readonly otpRepository: any
+  ) { }
 
-  async register(email: string, password: string, role: 'admin' | 'analyst') {
+  async register(email: string, password: string, role: 'admin' | 'analyst' | 'user') {
     try {
       // Check if user already exists
       const existing = await this.userRepository.findByEmail(email);
@@ -44,29 +45,18 @@ export class AuthService {
       // Return JWT token
       return {
         token: signJwt({
-          sub: String(user._id),
+          sub: user.userId || String(user._id),
           email: user.email,
-          role: user.role
+          role: user.role,
+          status: user.status
         })
       };
 
     } catch (error: any) {
-
-      // Handle CosmosDB / Mongo duplicate key error
-      if (
-        error?.code === 11000 ||
-        error?.message?.includes('duplicate key') ||
-        error?.message?.includes('E11000')
-      ) {
+      if (error?.code === 11000 || error?.message?.includes('duplicate key')) {
         throw new AppError('User already exists', 409);
       }
-
-      // Re-throw known AppError
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      // Unknown error → convert to safe AppError
+      if (error instanceof AppError) throw error;
       throw new AppError('Failed to register user', 500);
     }
   }
@@ -77,6 +67,10 @@ export class AuthService {
 
       if (!user || !comparePassword(password, user.password)) {
         throw new AppError('Invalid credentials', 401);
+      }
+
+      if (user.status === 'FROZEN') {
+        throw new AppError('Account is frozen due to suspicious activity. Contact support.', 403);
       }
 
       await this.auditService.log({
@@ -95,19 +89,58 @@ export class AuthService {
 
       return {
         token: signJwt({
-          sub: String(user._id),
+          sub: user.userId || String(user._id),
           email: user.email,
-          role: user.role
+          role: user.role,
+          status: user.status
         })
       };
 
     } catch (error: any) {
-
-      if (error instanceof AppError) {
-        throw error;
-      }
-
+      if (error instanceof AppError) throw error;
       throw new AppError('Login failed', 500);
     }
+  }
+
+  async requestOtp(userId: string) {
+    const user = await this.userRepository.findByEmail(userId);
+    if (!user) throw new AppError('User not found', 404);
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.otpRepository.create(user.userId, code);
+
+    console.log(`[BANK-GRADE SECURITY] OTP for ${user.email}: ${code}`);
+
+    await this.auditService.log({
+      eventType: 'AUTH_OTP_REQUESTED',
+      action: 'request',
+      entityType: 'otp',
+      entityId: user.userId,
+      actor: { actorId: user.userId, actorEmail: user.email },
+      metadata: { method: 'SMS_FALLBACK' }
+    });
+
+    return { message: 'OTP sent successfully' };
+  }
+
+  async verifyOtp(userId: string, code: string) {
+    const isValid = await this.otpRepository.verify(userId, code);
+    if (!isValid) throw new AppError('Invalid or expired OTP', 401);
+
+    const user = await this.userRepository.findByEmail(userId);
+    if (user && user.status === 'RESTRICTED') {
+      user.status = 'ACTIVE';
+      await user.save();
+    }
+
+    await this.auditService.log({
+      eventType: 'AUTH_OTP_VERIFIED',
+      action: 'verify',
+      entityType: 'otp',
+      entityId: userId,
+      metadata: { success: true }
+    });
+
+    return { message: 'OTP verified successfully' };
   }
 }

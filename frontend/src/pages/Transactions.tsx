@@ -6,6 +6,7 @@ import { FixedSizeList, ListChildComponentProps } from 'react-window';
 import { CreateTransactionForm } from '../components/CreateTransactionForm';
 import { ErrorState } from '../components/ErrorState';
 import { RiskBadge } from '../components/RiskBadge';
+import { ForensicDetailModal } from '../components/transactions/ForensicDetailModal';
 import { monitoringApi } from '../api/client';
 import { formatSafeDate } from '../utils/date';
 import { Transaction } from '../types';
@@ -25,6 +26,7 @@ export const Transactions = () => {
   const [sortBy, setSortBy] = useState<'timestamp' | 'amount' | 'fraudScore' | 'riskLevel' | 'createdAt'>('timestamp');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
+  const [showForensicModal, setShowForensicModal] = useState(false);
 
   const query = useQuery({
     queryKey: [
@@ -232,9 +234,22 @@ export const Transactions = () => {
             <p className="text-sm text-slate-700 dark:text-slate-200">ML Status: <span className="font-semibold">{selected.mlStatus ?? 'N/A'}</span></p>
             <p className="text-sm text-slate-700 dark:text-slate-200">Model: <span className="font-semibold">{selected.modelName ?? 'N/A'} {selected.modelVersion ?? ''}</span></p>
             <p className="text-sm text-slate-700 dark:text-slate-200">Geo Velocity Flag: <span className="font-semibold">{selected.geoVelocityFlag ? 'Yes' : 'No'}</span></p>
+            <div className="md:col-span-2 xl:col-span-3 pt-2">
+              <button
+                onClick={() => setShowForensicModal(true)}
+                className="glass-btn border-blue-500/40 text-blue-500 hover:bg-blue-500 hover:text-white font-black text-xs uppercase tracking-widest px-6 py-2.5"
+              >
+                Deep Forensic Investigation
+              </button>
+            </div>
           </div>
         )}
       </motion.section>
+
+      <ForensicDetailModal
+        transaction={selected}
+        onClose={() => setShowForensicModal(false)}
+      />
     </div>
   );
 };

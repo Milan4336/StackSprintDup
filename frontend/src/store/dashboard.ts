@@ -4,6 +4,7 @@ import { monitoringApi, apiClient } from '../api/client';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import {
   FraudAlert,
+  FraudExplanation,
   FraudExplanationRecord,
   RiskLevel,
   Transaction,
@@ -216,7 +217,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         fraudScore: Number(payload.fraudScore ?? 0),
         riskLevel: (payload.riskLevel as RiskLevel) ?? 'Low',
         isFraud: Boolean(payload.isFraud ?? false),
-        explanations: []
+        ruleReasons: Array.isArray(payload.ruleReasons) ? (payload.ruleReasons as string[]) : [],
+        explanations: (payload.explanations as FraudExplanation[]) ?? []
       };
 
       pendingTransactions.push(tx);

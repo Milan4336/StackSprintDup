@@ -11,7 +11,7 @@ The platform follows a modular **Microservices Architecture** designed for high 
 ### Core Components
 - **API Gateway (Node.js/Express)**: The central nervous system. Handles authentication, orchestration, rule execution, and realtime event fan-out via Redis/Socket.io.
 - **ML Service (FastAPI/Python)**: High-throughput inference engine. Hosts a multi-model ensemble and model registry with prometheus-backed telemetry.
-- **Frontend Command Center (React/Vite)**: A cinematic, high-density dashboard for analysts, featuring D3-powered relationship graphs and geospatial heatmaps.
+- **Frontend Command Center (React/Vite)**: A 10-module modular intelligence console with Executive Mode, D3-powered relationship graphs, geospatial heatmaps, and lazy-loaded React routes.
 
 ### Data Ecosystem
 - **Primary Persistence**: MongoDB (Transactions, Alerts, Cases, Audit).

@@ -7,6 +7,8 @@ export interface SystemSettingDocument extends Document {
   velocityTxThreshold: number;
   scoreRuleWeight: number;
   scoreMlWeight: number;
+  scoreBehaviorWeight: number;
+  scoreGraphWeight: number;
   autonomousAlertThreshold: number;
   simulationMode: boolean;
   updatedBy?: string;
@@ -22,6 +24,8 @@ const systemSettingSchema = new Schema<SystemSettingDocument>(
     velocityTxThreshold: { type: Number, required: true },
     scoreRuleWeight: { type: Number, required: true },
     scoreMlWeight: { type: Number, required: true },
+    scoreBehaviorWeight: { type: Number, required: true, default: 0.25 },
+    scoreGraphWeight: { type: Number, required: true, default: 0.15 },
     autonomousAlertThreshold: { type: Number, required: true },
     simulationMode: { type: Boolean, required: true, default: true },
     updatedBy: { type: String, required: false }

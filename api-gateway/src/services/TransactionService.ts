@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { AutonomousResponseService } from './AutonomousResponseService';
+import { FraudResponseService } from './FraudResponseService';
 import { FraudExplanationItem } from '../models/FraudExplanation';
 import { TransactionQueryOptions } from '../repositories/TransactionRepository';
 
@@ -21,7 +21,7 @@ export class TransactionService {
     private readonly transactionRepository: any,
     private readonly fraudScoringService: any,
     private readonly eventBusService: any,
-    private readonly autonomousResponseService: AutonomousResponseService,
+    private readonly fraudResponseService: FraudResponseService,
     private readonly deviceFingerprintService: any,
     private readonly fraudExplanationService: any,
     private readonly geoService: any,
@@ -30,12 +30,16 @@ export class TransactionService {
   ) { }
 
   async create(input: CreateTransactionInput) {
+    const enrichedInput = {
+      ...input,
+      timestamp: input.timestamp || new Date()
+    };
 
-    const scoring = await this.fraudScoringService.score(input);
+    const scoring = await this.fraudScoringService.score(enrichedInput);
 
     const transaction = await this.transactionRepository.create({
       transactionId: input.transactionId ?? uuidv4(),
-      ...input,
+      ...enrichedInput,
       // Full scoring result — all fields required by the Mongoose schema
       fraudScore: scoring.fraudScore,
       riskLevel: scoring.riskLevel,
@@ -44,16 +48,21 @@ export class TransactionService {
       ruleScore: scoring.ruleScore,
       mlScore: scoring.mlScore,
       mlStatus: scoring.mlStatus,
+      behaviorScore: scoring.behaviorScore,
+      graphScore: scoring.graphScore,
       modelName: scoring.modelName,
       modelVersion: scoring.modelVersion,
       modelConfidence: scoring.modelConfidence,
+      modelScores: scoring.modelScores,
+      modelWeights: scoring.modelWeights,
       geoVelocityFlag: scoring.geoVelocityFlag,
+      ruleReasons: scoring.ruleReasons ?? [],
       explanations: scoring.explanations ?? [],
       createdAt: new Date(),
       updatedAt: new Date()
     });
 
-    await this.autonomousResponseService.process({
+    await this.fraudResponseService.process({
       transactionId: transaction.transactionId,
       userId: transaction.userId,
       fraudScore: transaction.fraudScore,

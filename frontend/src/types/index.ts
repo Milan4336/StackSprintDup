@@ -40,6 +40,7 @@ export interface Transaction {
   riskLevel: RiskLevel;
   isFraud: boolean;
   geoVelocityFlag?: boolean;
+  ruleReasons?: string[];
   explanations?: FraudExplanation[];
   createdAt?: string;
   updatedAt?: string;
@@ -231,6 +232,8 @@ export interface SystemSettings {
   velocityTxThreshold: number;
   scoreRuleWeight: number;
   scoreMlWeight: number;
+  scoreBehaviorWeight: number;
+  scoreGraphWeight: number;
   autonomousAlertThreshold: number;
   simulationMode: boolean;
   updatedBy?: string;

@@ -100,6 +100,10 @@ export const monitoringApi = {
     const { data } = await apiClient.get<FraudExplanationRecord[]>('/explanations', { params: { limit } });
     return data;
   },
+  async getGraph(limit = 300): Promise<{ nodes: any[]; links: any[] }> {
+    const { data } = await apiClient.get('/graph', { params: { limit } });
+    return data;
+  },
   async startSimulation(count = 50): Promise<{ generated: number }> {
     const { data } = await apiClient.post<{ generated: number }>('/simulation/start', { count });
     return data;
