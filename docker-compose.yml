@@ -43,6 +43,8 @@ services:
       - ML_SERVICE_URL=http://ml-service:8000
       - JWT_SECRET=supersecretminimum32charactersforjwt
       - JWT_EXPIRES_IN=1h
+    volumes:
+      - ./PATCH_NOTES.md:/app/PATCH_NOTES.md
     depends_on:
       - mongo
       - redis

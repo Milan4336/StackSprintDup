@@ -117,13 +117,13 @@ export const Updates = () => {
                                             className="overflow-hidden"
                                         >
                                             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3 pb-2 text-sm text-slate-600 dark:text-slate-300">
-                                                {update.details.split('\\n').map((line, i) => {
+                                                {update.details.split('\n').map((line: string, i: number) => {
                                                     const trimmed = line.trim();
                                                     if (!trimmed) return null;
 
                                                     if (trimmed.startsWith('- ')) {
                                                         const text = trimmed.substring(2);
-                                                        const boldMatch = text.match(/\\*\\*(.*?)\\*\\*\\s*(.*)/);
+                                                        const boldMatch = text.match(/\*\*(.*?)\*\*\s*(.*)/);
                                                         if (boldMatch) {
                                                             return (
                                                                 <div key={i} className="flex gap-2 items-start">

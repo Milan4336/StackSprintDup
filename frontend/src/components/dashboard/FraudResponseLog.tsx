@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Activity } from 'lucide-react';
 import { HUDPanel } from '../visual/HUDDecorations';
 import { monitoringApi } from '../../api/client';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
 
 export const FraudResponseLog = () => {
     const [logs, setLogs] = useState<any[]>([]);
@@ -42,7 +42,9 @@ export const FraudResponseLog = () => {
                                         {log.eventType}
                                     </p>
                                     <span className="text-[10px] font-mono text-slate-500">
-                                        {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                                        {log.createdAt && isValid(new Date(log.createdAt))
+                                            ? formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })
+                                            : 'Just now'}
                                     </span>
                                 </div>
                                 <p className="text-sm text-slate-300 font-mono">

@@ -44,8 +44,8 @@ html.dark {
     color: var(--app-text);
     background-color: var(--app-bg);
     background-image:
-      radial-gradient(1200px 720px at -5% -10%, rgba(59, 130, 246, 0.18), transparent 55%),
-      radial-gradient(1100px 620px at 105% -15%, rgba(16, 185, 129, 0.14), transparent 58%),
+      radial-gradient(1200px 720px at var(--mouse-x, -5%) var(--mouse-y, -10%), rgba(59, 130, 246, 0.18), transparent 55%),
+      radial-gradient(1100px 620px at calc(100% - var(--mouse-x, -5%)) calc(100% - var(--mouse-y, -10%)), rgba(16, 185, 129, 0.14), transparent 58%),
       radial-gradient(900px 500px at 60% 105%, rgba(239, 68, 68, 0.12), transparent 58%),
       linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);

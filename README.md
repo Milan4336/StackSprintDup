@@ -12,6 +12,7 @@ The platform features a "WOW"-factor UI designed for maximum situational awarene
 
 ### 🌑 Atmospheric Layers
 - **Dynamic Threat Atmosphere**: Living background gradients that shift and breathe based on `threatIndex`.
+- **Global Hover Tracking**: Real-time cursor coordinates pipe into CSS variables, casting a smooth radial glow across the entire platform.
 - **SOC Grid Overlay**: Holographic background texture with moving laser scan lines.
 - **Defense Shield**: High-intensity lockdown overlay activating at critical threat levels (`threatIndex > 95`).
 - **Threat Shockwave**: Full-screen radial energy waves triggered by sudden risk spikes.
@@ -22,8 +23,9 @@ The platform features a "WOW"-factor UI designed for maximum situational awarene
 - **Explosion Markers**: Particle bursts highlighting fraud events on geospatial maps.
 - **Interactive Neural Flow**: Live data throughput visualization representing ML model activity.
 
-### 🔊 Audio Intelligence
+### 🔊 Audio & Semantic Intelligence
 - **Threat Audio Engine**: Browser-native Web Audio synthesis providing real-time sonification of risk levels, including escalation tones and critical pulses.
+- **Dynamic Patch Notes**: Pulls update logs dynamically from external `.md` files directly into an interactive presentation UI via dedicated API gateways.
 
 ---
 

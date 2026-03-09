@@ -21,8 +21,9 @@ export class SystemController {
 
   updates = async (_req: Request, res: Response): Promise<void> => {
     try {
-      // Find the patch notes file relative to the project root (api-gateway is inside Stack_Sprint)
-      const notesPath = path.join(process.cwd(), '..', 'PATCH_NOTES.md');
+      const isDocker = fs.existsSync('/.dockerenv');
+      const basePath = isDocker ? process.cwd() : path.join(process.cwd(), '..');
+      const notesPath = path.join(basePath, 'PATCH_NOTES.md');
       const content = fs.readFileSync(notesPath, 'utf8');
 
       const updatesList: any[] = [];
