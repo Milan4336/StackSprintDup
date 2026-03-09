@@ -31,6 +31,7 @@ export interface TransactionDocument extends Document {
   geoVelocityFlag?: boolean;
   ruleReasons?: string[];
   explanations?: FraudExplanationItem[];
+  verificationStatus: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'FAILED';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,7 +75,8 @@ const transactionSchema = new Schema<TransactionDocument>(
     isFraud: { type: Boolean, required: true, index: true },
     geoVelocityFlag: { type: Boolean, required: false, default: false },
     ruleReasons: { type: [String], default: [] },
-    explanations: { type: [explanationItemSchema], default: [] }
+    explanations: { type: [explanationItemSchema], default: [] },
+    verificationStatus: { type: String, enum: ['NOT_REQUIRED', 'PENDING', 'VERIFIED', 'FAILED'], default: 'NOT_REQUIRED' }
   },
   { timestamps: true, collection: 'transactions' }
 );

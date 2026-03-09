@@ -26,19 +26,22 @@ export const simulationSchema = z.object({
   count: z.number().int().min(1).max(500).optional()
 });
 
+export const CASE_STATUSES = ['NEW', 'UNDER_INVESTIGATION', 'ESCALATED', 'CONFIRMED_FRAUD', 'FALSE_POSITIVE', 'RESOLVED'] as const;
+export const CASE_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+
 export const createCaseSchema = z.object({
   transactionId: z.string().min(1),
   alertId: z.string().min(1).optional(),
-  assignedTo: z.string().min(1).optional(),
-  status: z.enum(['OPEN', 'INVESTIGATING', 'RESOLVED', 'FALSE_POSITIVE']).optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+  investigatorId: z.string().min(1).optional(),
+  status: z.enum(CASE_STATUSES).optional(),
+  priority: z.enum(CASE_PRIORITIES).optional(),
   notes: z.array(z.string().min(1)).optional()
 });
 
 export const updateCaseSchema = z.object({
-  status: z.enum(['OPEN', 'INVESTIGATING', 'RESOLVED', 'FALSE_POSITIVE']).optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
-  assignedTo: z.string().min(1).optional(),
+  status: z.enum(CASE_STATUSES).optional(),
+  priority: z.enum(CASE_PRIORITIES).optional(),
+  investigatorId: z.string().min(1).optional(),
   note: z.string().min(1).optional()
 });
 

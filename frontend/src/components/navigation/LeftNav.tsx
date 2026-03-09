@@ -30,7 +30,7 @@ export const LeftNav = () => {
         { to: '/dashboard/network', icon: Network, label: 'Global Graph', hideExecutive: true },
         { to: '/dashboard/geo', icon: Map, label: 'Geo Analytics' },
         { to: '/dashboard/devices', icon: MonitorSmartphone, label: 'Devices' },
-        { to: '/dashboard/alerts', icon: BellRing, label: 'Alerts', hideExecutive: true },
+        { to: '/dashboard/alerts', icon: ShieldAlert, label: 'Alert Center', hideExecutive: false },
         { to: '/dashboard/actions', icon: ShieldAlert, label: 'Global Threat Globe' },
         { to: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/dashboard/simulation', icon: PlayCircle, label: 'Simulation' },

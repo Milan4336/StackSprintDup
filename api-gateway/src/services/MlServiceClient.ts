@@ -8,6 +8,12 @@ interface MlRequest {
   location: string;
   deviceId: string;
   timestamp: string;
+  graphContext?: {
+    deviceId: string;
+    ipAddress: string;
+    transactionId?: string;
+    isFraud?: boolean;
+  };
 }
 
 export type MlRuntimeStatus = 'HEALTHY' | 'DEGRADED' | 'OFFLINE';
@@ -66,6 +72,9 @@ export class MlServiceClient {
     modelScores: Record<string, number>;
     modelWeights: Record<string, number>;
     explanations: FraudExplanationItem[];
+    graphScore?: number;
+    graphMetrics?: Record<string, unknown>;
+    featureContributions?: Array<{ feature: string; weight: number }>;
   }> {
     if (!this.canAttempt()) {
       throw new Error(`ML circuit breaker open until ${new Date(this.circuitOpenUntil).toISOString()}`);
@@ -80,6 +89,9 @@ export class MlServiceClient {
         modelScores: Record<string, number>;
         modelWeights: Record<string, number>;
         explanations: FraudExplanationItem[];
+        graphScore?: number;
+        graphMetrics?: Record<string, unknown>;
+        featureContributions?: Array<{ feature: string; weight: number }>;
       }>(`${env.ML_SERVICE_URL}/predict`, payload, {
         timeout: 2500
       });
@@ -89,6 +101,20 @@ export class MlServiceClient {
       const reason = error instanceof Error ? error.message : 'Unknown ML error';
       this.markFailure(reason);
       throw error;
+    }
+  }
+
+  async getGraphAnalytics(): Promise<{
+    nodes: any[];
+    clusters: any[];
+    totalNodes: number;
+    totalEdges: number;
+  }> {
+    try {
+      const resp = await axios.get(`${env.ML_SERVICE_URL}/graph/analytics`, { timeout: 5000 });
+      return resp.data;
+    } catch {
+      return { nodes: [], clusters: [], totalNodes: 0, totalEdges: 0 };
     }
   }
 
@@ -136,6 +162,27 @@ export class MlServiceClient {
     } catch (error: any) {
       const reason = error.response?.data?.detail || error.message || 'Model config update failed';
       throw new Error(reason);
+    }
+  }
+
+  async getModelRegistry(modelName = 'xgboost'): Promise<any[]> {
+    try {
+      const resp = await axios.get(`${env.ML_SERVICE_URL}/model/registry`, {
+        params: { model_name: modelName },
+        timeout: 5000
+      });
+      return resp.data;
+    } catch {
+      return [];
+    }
+  }
+
+  async getModelStats(): Promise<any> {
+    try {
+      const resp = await axios.get(`${env.ML_SERVICE_URL}/model/stats`, { timeout: 2000 });
+      return resp.data;
+    } catch {
+      return { active: {}, candidate: null };
     }
   }
 

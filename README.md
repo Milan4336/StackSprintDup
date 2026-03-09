@@ -46,6 +46,7 @@ Transformed investigation workflows from standard tables into a multi-dimensiona
 ### 🛡️ Risk-Based Containment
 - **4-Tier Action Engine**: Automated responses scale from nominal `ALLOW`, up step-up authentication (`SUSPICIOUS`), localized `REQUIRE_MANUAL_REVIEW` account freezing (`HIGH RISK`), and `BLOCK_TRANSACTION` micro-device isolation (`CRITICAL`).
 - **Fraud Protection Mode (Safe Mode)**: A threshold-activated system state that dynamically triggers when multiple high-severity threats occur in rapid succession, temporarily requiring manual human authorization on all high-value outbound pipelines.
+- **Zero Trust Verification**: A cryptographic device-level 3-stage challenge modal (OTP + Biometric + Device Handshake) that intercepts high-risk transactions dynamically mid-flight.
 - **MFA Admin Override**: Secure, role-gated mechanism to bypass system freezes on individual entities.
 
 ---

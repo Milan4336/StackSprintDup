@@ -1,12 +1,13 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface FraudGraphEdgeDocument extends Document {
-    fromId: string; // userId, deviceId, or ipAddress
-    fromType: 'USER' | 'DEVICE' | 'IP';
+    fromId: string;
+    fromType: 'USER' | 'DEVICE' | 'IP' | 'TRANSACTION' | 'CARD';
     toId: string;
-    toType: 'USER' | 'DEVICE' | 'IP';
-    relationshipType: 'OWNED_BY' | 'USED_BY' | 'CONNECTED_TO' | 'SHARED_WITH';
-    weight: number; // e.g., frequency of connection
+    toType: 'USER' | 'DEVICE' | 'IP' | 'TRANSACTION' | 'CARD';
+    relationshipType: 'OWNED_BY' | 'USED_BY' | 'CONNECTED_TO' | 'SHARED_WITH' | 'TX_USER';
+    weight: number;
+    fraudScore: number;
     isSuspicious: boolean;
     lastSeenAt: Date;
     createdAt: Date;
@@ -16,11 +17,12 @@ export interface FraudGraphEdgeDocument extends Document {
 const fraudGraphEdgeSchema = new Schema<FraudGraphEdgeDocument>(
     {
         fromId: { type: String, required: true, index: true },
-        fromType: { type: String, enum: ['USER', 'DEVICE', 'IP'], required: true },
+        fromType: { type: String, enum: ['USER', 'DEVICE', 'IP', 'TRANSACTION', 'CARD'], required: true },
         toId: { type: String, required: true, index: true },
-        toType: { type: String, enum: ['USER', 'DEVICE', 'IP'], required: true },
+        toType: { type: String, enum: ['USER', 'DEVICE', 'IP', 'TRANSACTION', 'CARD'], required: true },
         relationshipType: { type: String, required: true },
         weight: { type: Number, default: 1 },
+        fraudScore: { type: Number, default: 0 },
         isSuspicious: { type: Boolean, default: false, index: true },
         lastSeenAt: { type: Date, default: Date.now }
     },

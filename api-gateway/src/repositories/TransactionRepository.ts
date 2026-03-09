@@ -152,4 +152,14 @@ export class TransactionRepository {
       { $project: { _id: 0, country: '$_id', fraudCount: 1, total: 1 } }
     ]);
   }
+
+  async findLabeledTransactions(limit = 2000): Promise<TransactionDocument[]> {
+    // Only return transactions that have been definitely labeled (isFraud is either true or false explicitly)
+    // In our system, all transactions have isFraud, but for training we might want to prioritize those 
+    // that were reviewed or came from high-confidence sources if applicable.
+    // For now, we take the most recent labeled transactions.
+    return TransactionModel.find({})
+      .sort({ timestamp: -1 })
+      .limit(limit);
+  }
 }

@@ -3,20 +3,20 @@ import { CaseService } from '../services/CaseService';
 import { AppError } from '../utils/errors';
 
 export class CaseController {
-  constructor(private readonly caseService: CaseService) {}
+  constructor(private readonly caseService: CaseService) { }
 
   create = async (req: Request, res: Response): Promise<void> => {
     const created = await this.caseService.create({
       transactionId: req.body.transactionId,
       alertId: req.body.alertId,
-      assignedTo: req.body.assignedTo,
+      investigatorId: req.body.investigatorId,
       status: req.body.status,
       priority: req.body.priority,
       notes: req.body.notes,
       actor: {
-        actorId: req.user?.sub,
-        actorEmail: req.user?.email,
-        ipAddress: req.ip
+        actorId: req.user?.sub as string,
+        actorEmail: req.user?.email as string,
+        ipAddress: req.ip as string
       }
     });
     res.status(201).json(created);
@@ -26,27 +26,62 @@ export class CaseController {
     const result = await this.caseService.list({
       page: Number(req.query.page ?? 1),
       limit: Number(req.query.limit ?? 25),
-      status: req.query.status as 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'FALSE_POSITIVE' | undefined,
-      priority: req.query.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | undefined,
-      assignedTo: req.query.assignedTo as string | undefined,
-      transactionId: req.query.transactionId as string | undefined
+      status: req.query.status as any,
+      priority: req.query.priority as any,
+      investigatorId: req.query.investigatorId as string,
+      transactionId: req.query.transactionId as string
     });
     res.status(200).json(result);
   };
 
-  update = async (req: Request, res: Response): Promise<void> => {
-    const updated = await this.caseService.updateByCaseId({
-      caseId: req.params.id as string,
-      status: req.body.status,
-      priority: req.body.priority,
-      assignedTo: req.body.assignedTo,
-      note: req.body.note,
-      actor: {
-        actorId: req.user?.sub,
-        actorEmail: req.user?.email,
-        ipAddress: req.ip
+  updateStatus = async (req: Request, res: Response): Promise<void> => {
+    const caseId = req.params.id as string;
+    const updated = await this.caseService.updateStatus(
+      caseId,
+      req.body.status,
+      req.body.note,
+      {
+        actorId: req.user?.sub as string,
+        actorEmail: req.user?.email as string,
+        ipAddress: req.ip as string
       }
-    });
+    );
+
+    if (!updated) {
+      throw new AppError('Case not found', 404);
+    }
+    res.status(200).json(updated);
+  };
+
+  assign = async (req: Request, res: Response): Promise<void> => {
+    const caseId = req.params.id as string;
+    const updated = await this.caseService.assignInvestigator(
+      caseId,
+      req.body.investigatorId,
+      {
+        actorId: req.user?.sub as string,
+        actorEmail: req.user?.email as string,
+        ipAddress: req.ip as string
+      }
+    );
+
+    if (!updated) {
+      throw new AppError('Case not found', 404);
+    }
+    res.status(200).json(updated);
+  };
+
+  addEvidence = async (req: Request, res: Response): Promise<void> => {
+    const caseId = req.params.id as string;
+    const updated = await this.caseService.addEvidence(
+      caseId,
+      req.body.fileUrl,
+      {
+        actorId: req.user?.sub as string,
+        actorEmail: req.user?.email as string,
+        ipAddress: req.ip as string
+      }
+    );
 
     if (!updated) {
       throw new AppError('Case not found', 404);

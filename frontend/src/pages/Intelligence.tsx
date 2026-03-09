@@ -8,6 +8,9 @@ import { ModelConfidenceChart } from '../components/intelligence/ModelConfidence
 import { ModelDriftChart } from '../components/intelligence/ModelDriftChart';
 
 import { ModelConfidenceRing } from '../components/visual/ModelConfidenceRing';
+import { FeatureImportanceChart } from '../components/intelligence/FeatureImportanceChart';
+import { ContributionBars } from '../components/intelligence/ContributionBars';
+import { FeatureContribution } from '../types';
 
 export const Intelligence = () => {
     const { connectLive, disconnectLive } = useIntelligenceSlice();
@@ -28,19 +31,27 @@ export const Intelligence = () => {
     // Initial state updated from historical queries or socket
     const [confidence, setConfidence] = useState(0);
     const [klDivergence, setKlDivergence] = useState(0);
+    const [lastContributions, setLastContributions] = useState<FeatureContribution[]>([]);
 
     useEffect(() => {
         connectLive();
 
         const handleConf = (e: any) => setConfidence(e.detail.confidence);
         const handleDrift = (e: any) => setKlDivergence(e.detail.klDivergence);
+        const handlePredict = (e: any) => {
+            if (e.detail.featureContributions) {
+                setLastContributions(e.detail.featureContributions);
+            }
+        };
 
         window.addEventListener('intelligence:confidence', handleConf);
         window.addEventListener('intelligence:drift', handleDrift);
+        window.addEventListener('transactions:predict', handlePredict);
 
         return () => {
             window.removeEventListener('intelligence:confidence', handleConf);
             window.removeEventListener('intelligence:drift', handleDrift);
+            window.removeEventListener('transactions:predict', handlePredict);
             disconnectLive();
         };
     }, [connectLive, disconnectLive]);
@@ -98,6 +109,33 @@ export const Intelligence = () => {
                             animate={{ width: `${Math.min(100, (klDivergence / 0.1) * 100)}%` }}
                         />
                     </div>
+                </div>
+
+                <div className="rounded-2xl border border-blue-500/20 bg-slate-900/50 p-6 col-span-1 md:col-span-2">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded-lg">
+                                <AlertOctagon className="text-blue-400" size={20} />
+                            </div>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Explainable AI (SHAP) — Real-time Feature Contribution</h3>
+                        </div>
+                    </div>
+                    {lastContributions.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Prediction Baseline Shift</p>
+                                <ContributionBars contributions={lastContributions} />
+                            </div>
+                            <div className="h-48">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 text-center">Relative Feature Importance</p>
+                                <FeatureImportanceChart data={lastContributions} />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-48 border border-dashed border-slate-800 rounded-xl">
+                            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Awaiting live prediction data...</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

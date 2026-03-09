@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type CaseStatus = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'FALSE_POSITIVE';
+export type CaseStatus = 'NEW' | 'UNDER_INVESTIGATION' | 'ESCALATED' | 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE' | 'RESOLVED';
 export type CasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export interface CaseTimelineItem {
@@ -14,10 +14,11 @@ export interface CaseDocument extends Document {
   caseId: string;
   transactionId: string;
   alertId?: string;
-  assignedTo?: string;
-  status: CaseStatus;
+  investigatorId?: string;
+  caseStatus: CaseStatus;
   priority: CasePriority;
-  notes: string[];
+  caseNotes: string[];
+  evidenceFiles: string[];
   timeline: CaseTimelineItem[];
   createdAt: Date;
   updatedAt: Date;
@@ -38,12 +39,12 @@ const caseSchema = new Schema<CaseDocument>(
     caseId: { type: String, required: true, unique: true, index: true },
     transactionId: { type: String, required: true, index: true },
     alertId: { type: String, required: false, index: true },
-    assignedTo: { type: String, required: false, index: true },
-    status: {
+    investigatorId: { type: String, required: false, index: true },
+    caseStatus: {
       type: String,
-      enum: ['OPEN', 'INVESTIGATING', 'RESOLVED', 'FALSE_POSITIVE'],
+      enum: ['NEW', 'UNDER_INVESTIGATION', 'ESCALATED', 'CONFIRMED_FRAUD', 'FALSE_POSITIVE', 'RESOLVED'],
       required: true,
-      default: 'OPEN',
+      default: 'NEW',
       index: true
     },
     priority: {
@@ -53,7 +54,8 @@ const caseSchema = new Schema<CaseDocument>(
       default: 'MEDIUM',
       index: true
     },
-    notes: { type: [String], default: [] },
+    caseNotes: { type: [String], default: [] },
+    evidenceFiles: { type: [String], default: [] },
     timeline: { type: [caseTimelineSchema], default: [] }
   },
   { timestamps: true, collection: 'cases' }

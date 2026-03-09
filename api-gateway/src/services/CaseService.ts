@@ -7,12 +7,12 @@ export class CaseService {
   constructor(
     private readonly caseRepository: CaseRepository,
     private readonly auditService: AuditService
-  ) {}
+  ) { }
 
   async create(input: {
     transactionId: string;
     alertId?: string;
-    assignedTo?: string;
+    investigatorId?: string;
     status?: CaseStatus;
     priority?: CasePriority;
     notes?: string[];
@@ -20,19 +20,20 @@ export class CaseService {
   }) {
     const noteSeed = (input.notes ?? []).filter(Boolean);
     const created = await this.caseRepository.create({
-      caseId: `case-${uuidv4()}`,
+      caseId: `case-${uuidv4().slice(0, 8)}`,
       transactionId: input.transactionId,
       alertId: input.alertId,
-      assignedTo: input.assignedTo,
-      status: input.status ?? 'OPEN',
+      investigatorId: input.investigatorId,
+      caseStatus: input.status ?? 'NEW',
       priority: input.priority ?? 'MEDIUM',
-      notes: noteSeed,
+      caseNotes: noteSeed,
+      evidenceFiles: [],
       timeline: [
         {
           at: new Date(),
           actor: input.actor?.actorEmail ?? 'system',
           action: 'CASE_CREATED',
-          note: noteSeed[0]
+          note: noteSeed[0] ?? 'Initial suspicious transaction detected'
         }
       ]
     });
@@ -46,11 +47,100 @@ export class CaseService {
       metadata: {
         transactionId: created.transactionId,
         priority: created.priority,
-        status: created.status
+        status: created.caseStatus
       }
     });
 
     return created;
+  }
+
+  async assignInvestigator(caseId: string, investigatorId: string, actor?: AuditActor) {
+    const existing = await this.caseRepository.findByCaseId(caseId);
+    if (!existing) return null;
+
+    const timeline = [
+      ...existing.timeline,
+      {
+        at: new Date(),
+        actor: actor?.actorEmail ?? 'system',
+        action: 'INVESTIGATOR_ASSIGNED',
+        note: `Case assigned to investigator: ${investigatorId}`
+      }
+    ];
+
+    const updated = await this.caseRepository.updateByCaseId(caseId, {
+      investigatorId,
+      caseStatus: existing.caseStatus === 'NEW' ? 'UNDER_INVESTIGATION' : existing.caseStatus,
+      timeline
+    });
+
+    if (updated) {
+      await this.auditService.log({
+        eventType: 'CASE_ASSIGNED',
+        action: 'assign',
+        entityType: 'case',
+        entityId: updated.caseId,
+        actor,
+        metadata: { investigatorId }
+      });
+    }
+
+    return updated;
+  }
+
+  async addEvidence(caseId: string, fileUrl: string, actor?: AuditActor) {
+    const existing = await this.caseRepository.findByCaseId(caseId);
+    if (!existing) return null;
+
+    const evidenceFiles = [...existing.evidenceFiles, fileUrl];
+    const timeline = [
+      ...existing.timeline,
+      {
+        at: new Date(),
+        actor: actor?.actorEmail ?? 'system',
+        action: 'EVIDENCE_ADDED',
+        note: `Evidence attached: ${fileUrl.split('/').pop()}`
+      }
+    ];
+
+    return this.caseRepository.updateByCaseId(caseId, { evidenceFiles, timeline });
+  }
+
+  async updateStatus(caseId: string, status: CaseStatus, note?: string, actor?: AuditActor) {
+    const existing = await this.caseRepository.findByCaseId(caseId);
+    if (!existing) return null;
+
+    const timeline = [
+      ...existing.timeline,
+      {
+        at: new Date(),
+        actor: actor?.actorEmail ?? 'system',
+        action: `STATUS_CHANGED_${status}`,
+        note: note ?? `Case status updated to ${status}`
+      }
+    ];
+
+    const caseNotes = [...existing.caseNotes];
+    if (note) caseNotes.push(note);
+
+    const updated = await this.caseRepository.updateByCaseId(caseId, {
+      caseStatus: status,
+      caseNotes,
+      timeline
+    });
+
+    if (updated) {
+      await this.auditService.log({
+        eventType: 'CASE_STATUS_UPDATED',
+        action: 'update',
+        entityType: 'case',
+        entityId: updated.caseId,
+        actor,
+        metadata: { status }
+      });
+    }
+
+    return updated;
   }
 
   async list(input: {
@@ -58,7 +148,7 @@ export class CaseService {
     limit?: number;
     status?: CaseStatus;
     priority?: CasePriority;
-    assignedTo?: string;
+    investigatorId?: string;
     transactionId?: string;
   }) {
     return this.caseRepository.list({
@@ -66,75 +156,8 @@ export class CaseService {
       limit: Math.max(1, Math.min(200, input.limit ?? 25)),
       status: input.status,
       priority: input.priority,
-      assignedTo: input.assignedTo,
+      investigatorId: input.investigatorId,
       transactionId: input.transactionId
     });
-  }
-
-  async updateByCaseId(input: {
-    caseId: string;
-    status?: CaseStatus;
-    priority?: CasePriority;
-    assignedTo?: string;
-    note?: string;
-    actor?: AuditActor;
-  }) {
-    const existing = await this.caseRepository.findByCaseId(input.caseId);
-    if (!existing) {
-      return null;
-    }
-
-    const notes = [...existing.notes];
-    if (input.note) {
-      notes.push(input.note);
-    }
-
-    const timeline = [
-      ...existing.timeline,
-      {
-        at: new Date(),
-        actor: input.actor?.actorEmail ?? 'system',
-        action: 'CASE_UPDATED',
-        note: input.note
-      }
-    ];
-
-    const updated = await this.caseRepository.updateByCaseId(input.caseId, {
-      status: input.status ?? existing.status,
-      priority: input.priority ?? existing.priority,
-      assignedTo: input.assignedTo ?? existing.assignedTo,
-      notes,
-      timeline
-    });
-
-    if (updated) {
-      await this.auditService.log({
-        eventType: 'CASE_UPDATED',
-        action: 'update',
-        entityType: 'case',
-        entityId: updated.caseId,
-        actor: input.actor,
-        metadata: {
-          status: updated.status,
-          priority: updated.priority,
-          assignedTo: updated.assignedTo
-        }
-      });
-
-      if (input.assignedTo && input.assignedTo !== existing.assignedTo) {
-        await this.auditService.log({
-          eventType: 'CASE_ASSIGNED',
-          action: 'assign',
-          entityType: 'case',
-          entityId: updated.caseId,
-          actor: input.actor,
-          metadata: {
-            assignedTo: input.assignedTo
-          }
-        });
-      }
-    }
-
-    return updated;
   }
 }

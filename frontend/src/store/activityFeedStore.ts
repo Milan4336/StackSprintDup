@@ -70,8 +70,8 @@ const normalizeSocketEvent = (channel: string, payload: unknown): ActivityFeedIt
     const message = started
       ? `Simulation started${count ? ` (${count} events)` : ''}.`
       : completed
-      ? `Simulation completed${count ? ` (${count} events)` : ''}.`
-      : `Simulation event received (${eventType}).`;
+        ? `Simulation completed${count ? ` (${count} events)` : ''}.`
+        : `Simulation event received (${eventType}).`;
 
     return {
       id: nextId(),
@@ -111,7 +111,7 @@ interface ActivityFeedStoreState {
   isOpen: boolean;
   addEvent: (event: Omit<ActivityFeedItem, 'id'>) => void;
   addSocketEvent: (channel: string, payload: unknown) => void;
-  addCaseEvent: (input: { action: 'created' | 'assigned' | 'updated'; caseId: string; assignedTo?: string }) => void;
+  addCaseEvent: (input: { action: 'created' | 'assigned' | 'updated'; caseId: string; investigatorId?: string }) => void;
   addMlStatusEvent: (input: { previous: string; next: string }) => void;
   setPaused: (paused: boolean) => void;
   setFilter: (filter: ActivityFeedFilter) => void;
@@ -139,7 +139,7 @@ export const useActivityFeedStore = create<ActivityFeedStoreState>((set) => ({
     }));
   },
 
-  addCaseEvent: ({ action, caseId, assignedTo }) => {
+  addCaseEvent: ({ action, caseId, investigatorId }) => {
     const event: ActivityFeedItem = {
       id: nextId(),
       type: 'case',
@@ -148,8 +148,8 @@ export const useActivityFeedStore = create<ActivityFeedStoreState>((set) => ({
         action === 'created'
           ? `Case created (${caseId}).`
           : action === 'assigned'
-          ? `Case assigned (${caseId}) to ${assignedTo ?? 'analyst'}.`
-          : `Case updated (${caseId}).`,
+            ? `Case assigned (${caseId}) to ${investigatorId ?? 'analyst'}.`
+            : `Case updated (${caseId}).`,
       timestamp: new Date().toISOString()
     };
 

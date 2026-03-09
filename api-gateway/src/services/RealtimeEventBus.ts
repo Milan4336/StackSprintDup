@@ -6,7 +6,7 @@ export interface RealtimeEvent {
     payload: any;
 }
 
-class RealtimeEventBusService {
+export class RealtimeEventBusService {
     public async publish(event: string, payload: any): Promise<void> {
         try {
             if (!redisClient || redisClient.status !== 'ready') {

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { DollarSign, LocateFixed, Smartphone, UserRound } from 'lucide-react';
 import { useTransactions } from '../context/TransactionContext';
 import { Transaction } from '../types';
+import { ZeroTrustModal } from './transactions/ZeroTrustModal';
 
 interface CreateTransactionFormProps {
   onCreated?: (transaction: Transaction) => void;
@@ -18,6 +19,7 @@ export const CreateTransactionForm = ({ onCreated }: CreateTransactionFormProps)
   const [deviceId, setDeviceId] = useState('device-ui-001');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pendingZeroTrustTx, setPendingZeroTrustTx] = useState<Transaction | null>(null);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,6 +34,11 @@ export const CreateTransactionForm = ({ onCreated }: CreateTransactionFormProps)
         deviceId: deviceId.trim()
       });
 
+      if (transaction.verificationStatus === 'PENDING') {
+        setPendingZeroTrustTx(transaction);
+        return;
+      }
+
       setSuccess(`Created ${transaction.transactionId} with ${transaction.riskLevel} risk (${transaction.fraudScore}).`);
       onCreated?.(transaction);
     } catch (err) {
@@ -40,6 +47,14 @@ export const CreateTransactionForm = ({ onCreated }: CreateTransactionFormProps)
       } else {
         setError('Failed to create transaction');
       }
+    }
+  };
+
+  const handleZeroTrustSuccess = () => {
+    if (pendingZeroTrustTx) {
+      setSuccess(`Created ${pendingZeroTrustTx.transactionId} with ${pendingZeroTrustTx.riskLevel} risk (${pendingZeroTrustTx.fraudScore}). Verification completed.`);
+      onCreated?.({ ...pendingZeroTrustTx, verificationStatus: 'VERIFIED', action: 'ALLOW' });
+      setPendingZeroTrustTx(null);
     }
   };
 
@@ -99,6 +114,15 @@ export const CreateTransactionForm = ({ onCreated }: CreateTransactionFormProps)
       {success ? (
         <p className="sm:col-span-2 xl:col-span-5 rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-300">{success}</p>
       ) : null}
+
+      {pendingZeroTrustTx && (
+        <ZeroTrustModal
+          transactionId={pendingZeroTrustTx.transactionId}
+          amount={pendingZeroTrustTx.amount}
+          onSuccess={handleZeroTrustSuccess}
+          onClose={() => setPendingZeroTrustTx(null)}
+        />
+      )}
     </motion.form>
   );
 };

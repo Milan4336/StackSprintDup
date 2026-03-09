@@ -106,7 +106,8 @@ export class AuthService {
           email: user.email,
           role: user.role,
           status: user.status
-        })
+        }),
+        userId: user.userId || String(user._id)
       };
 
     } catch (error: any) {

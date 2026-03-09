@@ -3,7 +3,7 @@ import { CaseDocument, CaseModel, CasePriority, CaseStatus } from '../models/Cas
 interface CaseListFilters {
   status?: CaseStatus;
   priority?: CasePriority;
-  assignedTo?: string;
+  investigatorId?: string;
   transactionId?: string;
   limit: number;
   page: number;
@@ -30,9 +30,9 @@ export class CaseRepository {
     pages: number;
   }> {
     const query: Record<string, unknown> = {};
-    if (filters.status) query.status = filters.status;
+    if (filters.status) query.caseStatus = filters.status;
     if (filters.priority) query.priority = filters.priority;
-    if (filters.assignedTo) query.assignedTo = filters.assignedTo;
+    if (filters.investigatorId) query.investigatorId = filters.investigatorId;
     if (filters.transactionId) query.transactionId = filters.transactionId;
 
     const skip = (filters.page - 1) * filters.limit;

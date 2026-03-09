@@ -13,9 +13,16 @@ import {
   SystemSettings,
   Transaction,
   TransactionStats,
-  UserDevice
+  UserDevice,
+  DeviceIntelligence,
+  GraphAnalytics,
+  AlertRecord,
+  CaseStatus,
+  CasePriority,
+  EnrichedGraphNode
 } from '../types';
 import { useAuthStore } from '../store/auth';
+import { generateDeviceFingerprint } from '../utils/deviceFingerprint';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
@@ -24,11 +31,20 @@ export const apiClient = axios.create({
   timeout: 10_000
 });
 
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use(async (config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Attach device fingerprint hash to stateful requests
+  if (config.url?.includes('/auth/') || config.url?.includes('/simulation') || config.url?.includes('/transactions')) {
+    try {
+      const fp = await generateDeviceFingerprint();
+      config.headers['X-Device-Fingerprint'] = btoa(JSON.stringify(fp));
+    } catch (e) { }
+  }
+
   return config;
 });
 
@@ -54,7 +70,8 @@ export const monitoringApi = {
     riskScore: number;
     lastLogin?: string;
   }> {
-    const { data } = await apiClient.get('/auth/me');
+    const fp = await generateDeviceFingerprint();
+    const { data } = await apiClient.post('/auth/me', { deviceFingerprint: fp });
     return data;
   },
   async getEntity(id: string): Promise<any> {
@@ -115,24 +132,36 @@ export const monitoringApi = {
     const { data } = await apiClient.get<UserDevice[]>('/devices', { params: { limit } });
     return data;
   },
+  async getDeviceIntelligence(limit = 200): Promise<DeviceIntelligence[]> {
+    const { data } = await apiClient.get<DeviceIntelligence[]>('/devices/intelligence', { params: { limit } });
+    return data;
+  },
   async getExplanations(limit = 120): Promise<FraudExplanationRecord[]> {
     const { data } = await apiClient.get<FraudExplanationRecord[]>('/explanations', { params: { limit } });
     return data;
   },
-  async getGraph(limit = 300): Promise<{ nodes: any[]; links: any[] }> {
+  async getGraph(limit = 300): Promise<{ nodes: EnrichedGraphNode[]; links: any[]; clusters: any[] }> {
     const { data } = await apiClient.get('/graph', { params: { limit } });
+    return data;
+  },
+  async getGraphAnalytics(): Promise<GraphAnalytics> {
+    const { data } = await apiClient.get<GraphAnalytics>('/graph/analytics');
     return data;
   },
   async startSimulation(count = 50): Promise<{ generated: number }> {
     const { data } = await apiClient.post<{ generated: number }>('/simulation/start', { count });
     return data;
   },
+  async simulateFraud(params: { attackType: string; volume: number; intensity: number }): Promise<{ message: string; taskId: string }> {
+    const { data } = await apiClient.post<{ message: string; taskId: string }>('/simulation/fraud', params);
+    return data;
+  },
   async getCases(params: {
     page?: number;
     limit?: number;
-    status?: string;
-    priority?: string;
-    assignedTo?: string;
+    status?: string | CaseStatus;
+    priority?: string | CasePriority;
+    investigatorId?: string;
     transactionId?: string;
   }): Promise<PaginatedResponse<CaseRecord>> {
     const { data } = await apiClient.get<PaginatedResponse<CaseRecord>>('/cases', { params });
@@ -141,24 +170,47 @@ export const monitoringApi = {
   async createCase(payload: {
     transactionId: string;
     alertId?: string;
-    assignedTo?: string;
-    status?: string;
-    priority?: string;
+    investigatorId?: string;
+    status?: string | CaseStatus;
+    priority?: string | CasePriority;
     notes?: string[];
   }): Promise<CaseRecord> {
     const { data } = await apiClient.post<CaseRecord>('/cases', payload);
     return data;
   },
+  async updateCaseStatus(
+    caseId: string,
+    status: CaseStatus,
+    note?: string
+  ): Promise<CaseRecord> {
+    const { data } = await apiClient.patch<CaseRecord>(`/cases/${caseId}/status`, { status, note });
+    return data;
+  },
+  async assignCase(
+    caseId: string,
+    investigatorId: string
+  ): Promise<CaseRecord> {
+    const { data } = await apiClient.post<CaseRecord>(`/cases/${caseId}/assign`, { investigatorId });
+    return data;
+  },
+  async addCaseEvidence(
+    caseId: string,
+    fileUrl: string
+  ): Promise<CaseRecord> {
+    const { data } = await apiClient.post<CaseRecord>(`/cases/${caseId}/evidence`, { fileUrl });
+    return data;
+  },
+  // Legacy updateCase - keeping for compatibility but preferring specific methods
   async updateCase(
     caseId: string,
     payload: {
       status?: string;
       priority?: string;
-      assignedTo?: string;
+      investigatorId?: string;
       note?: string;
     }
   ): Promise<CaseRecord> {
-    const { data } = await apiClient.patch<CaseRecord>(`/cases/${caseId}`, payload);
+    const { data } = await apiClient.patch<CaseRecord>(`/cases/${caseId}/status`, payload);
     return data;
   },
   async getAudit(limit = 200): Promise<AuditLog[]> {
@@ -216,8 +268,18 @@ export const monitoringApi = {
     const { data } = await apiClient.get('/search', { params: { q: query } });
     return data;
   },
-  async retrainModel(): Promise<{ status: string; async: boolean }> {
+  async retrainModel(): Promise<{ message: string; status: string }> {
     const { data } = await apiClient.post('/model/retrain', { async_mode: true });
+    return data;
+  },
+
+  async getModelRegistry(modelName = 'xgboost'): Promise<any[]> {
+    const { data } = await apiClient.get('/model/registry', { params: { modelName } });
+    return data;
+  },
+
+  async getModelStats(): Promise<any> {
+    const { data } = await apiClient.get('/model/stats');
     return data;
   },
 
@@ -266,6 +328,14 @@ export const monitoringApi = {
   },
   async releaseTransaction(transactionId: string): Promise<any> {
     const { data } = await apiClient.post('/admin/release-transaction', { transactionId });
+    return data;
+  },
+  async getLiveAlerts(limit = 50): Promise<AlertRecord[]> {
+    const { data } = await apiClient.get<AlertRecord[]>('/alerts/live', { params: { limit } });
+    return data;
+  },
+  async acknowledgeAlert(alertId: string): Promise<AlertRecord> {
+    const { data } = await apiClient.patch<AlertRecord>(`/alerts/${alertId}/acknowledge`);
     return data;
   }
 };

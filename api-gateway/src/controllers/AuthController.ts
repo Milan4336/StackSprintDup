@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/AuthService';
+import { DeviceIntelligenceService } from '../services/DeviceIntelligenceService';
 import { logger } from '../config/logger';
 
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly deviceIntelligenceService: DeviceIntelligenceService
+  ) { }
 
   register = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -26,8 +30,20 @@ export class AuthController {
 
   login = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { email, password } = req.body;
+      const { email, password, deviceFingerprint } = req.body;
       const result = await this.authService.login(email, password);
+
+      // Evaluate Device Fingerprint if provided in body or header
+      let fp = deviceFingerprint;
+      if (!fp && req.headers['x-device-fingerprint']) {
+        try {
+          fp = JSON.parse(Buffer.from(req.headers['x-device-fingerprint'] as string, 'base64').toString('ascii'));
+        } catch (e) { }
+      }
+      if (fp) {
+        await this.deviceIntelligenceService.evaluateDevice(email, fp);
+      }
+
       res.status(200).json(result);
     } catch (error: any) {
       if (error?.message?.toLowerCase().includes('invalid')) {
@@ -67,7 +83,21 @@ export class AuthController {
 
   me = async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = await this.authService.me((req as any).user.email);
+      const email = (req as any).user.email;
+      const user = await this.authService.me(email);
+
+      // Evaluate Device Fingerprint during session checks
+      const { deviceFingerprint } = req.body;
+      let fp = deviceFingerprint;
+      if (!fp && req.headers['x-device-fingerprint']) {
+        try {
+          fp = JSON.parse(Buffer.from(req.headers['x-device-fingerprint'] as string, 'base64').toString('ascii'));
+        } catch (e) { }
+      }
+      if (fp) {
+        await this.deviceIntelligenceService.evaluateDevice(user.userId || email, fp);
+      }
+
       res.status(200).json(user);
     } catch (error: any) {
       logger.error({ error }, 'Get me failed');

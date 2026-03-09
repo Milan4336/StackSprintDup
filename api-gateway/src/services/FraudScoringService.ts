@@ -31,6 +31,7 @@ export class FraudScoringService {
     location: string;
     deviceId: string;
     ipAddress: string;
+    deviceLabel?: string;
     latitude?: number;
     longitude?: number;
     timestamp: Date;
@@ -52,6 +53,7 @@ export class FraudScoringService {
     explanations: FraudExplanationItem[];
     ruleReasons: string[];
     geoVelocityFlag: boolean;
+    verificationStatus: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'FAILED';
   }> {
     const ruleEvaluation = await this.ruleEngineService.evaluate(input);
     const runtimeConfig = await this.settingsService.getRuntimeConfig();
@@ -85,20 +87,45 @@ export class FraudScoringService {
       ]);
 
       // BANK-GRADE WEIGHTED FUSION (Using Configurable Weights)
-      const combinedScore = (
+      let combinedScore = (
         (ruleScore * runtimeConfig.scoreRuleWeight) +
         (mlScore * 100 * runtimeConfig.scoreMlWeight) +
         (behaviorScore * 100 * runtimeConfig.scoreBehaviorWeight) +
         (graphScore * 100 * runtimeConfig.scoreGraphWeight)
       );
 
+      // Device Intelligence Context Modifier
+      if (input.deviceLabel === 'New Device' && input.amount > 1000) {
+        combinedScore = Math.min(100, combinedScore + 20); // Spike probability threshold
+        ruleEvaluation.reasons.push('High-value transaction originating from an untrusted New Device');
+      }
+
       const finalFraudScore = Math.round(combinedScore);
+
+      let action = this.responseAction(finalFraudScore);
+      let verificationStatus: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'FAILED' = 'NOT_REQUIRED';
+
+      // Zero Trust Trigger condition
+      if (
+        finalFraudScore > 70 &&
+        input.amount > runtimeConfig.highAmountThreshold &&
+        input.deviceLabel === 'New Device'
+      ) {
+        action = 'STEP_UP_AUTH';
+        verificationStatus = 'PENDING';
+        ruleEvaluation.reasons.push('Zero Trust Triggered: High score + new device + high amount.');
+      } else if (action === 'BLOCK') {
+        verificationStatus = 'FAILED';
+      } else if (action === 'STEP_UP_AUTH') {
+        verificationStatus = 'PENDING';
+      }
 
       return {
         fraudScore: finalFraudScore,
         riskLevel: this.classify(finalFraudScore),
         isFraud: finalFraudScore >= 70,
-        action: this.responseAction(finalFraudScore),
+        action,
+        verificationStatus,
         ruleScore,
         mlScore,
         behaviorScore,
@@ -134,11 +161,29 @@ export class FraudScoringService {
         (graphScore * 100 * fallbackGraphWeight)
       );
 
+      let action = this.responseAction(fallbackScore);
+      let verificationStatus: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'FAILED' = 'NOT_REQUIRED';
+
+      if (
+        fallbackScore > 70 &&
+        input.amount > runtimeConfig.highAmountThreshold &&
+        input.deviceLabel === 'New Device'
+      ) {
+        action = 'STEP_UP_AUTH';
+        verificationStatus = 'PENDING';
+        ruleEvaluation.reasons.push('Zero Trust Triggered: High score + new device + high amount.');
+      } else if (action === 'BLOCK') {
+        verificationStatus = 'FAILED';
+      } else if (action === 'STEP_UP_AUTH') {
+        verificationStatus = 'PENDING';
+      }
+
       return {
         fraudScore: fallbackScore,
         riskLevel: this.classify(fallbackScore),
         isFraud: fallbackScore >= 70,
-        action: this.responseAction(fallbackScore),
+        action,
+        verificationStatus,
         ruleScore,
         mlScore: 0,
         behaviorScore,

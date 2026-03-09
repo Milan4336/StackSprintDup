@@ -5,6 +5,7 @@ import { TransactionRepository } from '../repositories/TransactionRepository';
 import { CaseRepository } from '../repositories/CaseRepository';
 import { UserDeviceRepository } from '../repositories/UserDeviceRepository';
 import { FraudExplanationService } from '../services/FraudExplanationService';
+import { Device } from '../models/Device';
 
 export class MonitoringController {
   constructor(
@@ -13,7 +14,7 @@ export class MonitoringController {
     private readonly fraudExplanationService: FraudExplanationService,
     private readonly transactionRepository: TransactionRepository,
     private readonly caseRepository: CaseRepository
-  ) {}
+  ) { }
 
   alerts = async (req: Request, res: Response): Promise<void> => {
     const page = Number(req.query.page ?? 1);
@@ -67,6 +68,12 @@ export class MonitoringController {
   devices = async (req: Request, res: Response): Promise<void> => {
     const limit = Number(req.query.limit ?? 200);
     const result = await this.userDeviceRepository.findRecent(Math.max(1, Math.min(1000, limit)));
+    res.status(200).json(result);
+  };
+
+  deviceIntelligence = async (req: Request, res: Response): Promise<void> => {
+    const limit = Number(req.query.limit ?? 50);
+    const result = await Device.find({}).sort({ lastSeen: -1 }).limit(Math.max(1, Math.min(200, limit)));
     res.status(200).json(result);
   };
 

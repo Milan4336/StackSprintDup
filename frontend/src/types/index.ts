@@ -42,6 +42,8 @@ export interface Transaction {
   geoVelocityFlag?: boolean;
   ruleReasons?: string[];
   explanations?: FraudExplanation[];
+  featureContributions?: FeatureContribution[];
+  verificationStatus?: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'FAILED';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -78,6 +80,34 @@ export interface FraudExplanation {
   reason: string;
 }
 
+export interface FeatureContribution {
+  feature: string;
+  weight: number;
+}
+
+export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type AlertStatus = 'OPEN' | 'ACKNOWLEDGED';
+
+export interface AlertRecord {
+  _id?: string;
+  alertId: string;
+  transactionId: string;
+  userId: string;
+  fraudScore: number;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  channels: string[];
+  payload: {
+    amount: number;
+    location: string;
+    deviceHash: string;
+    timestamp: string | Date;
+    reasons: string[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface FraudAlert {
   _id?: string;
   alertId: string;
@@ -111,12 +141,32 @@ export interface UserDevice {
   riskLevel: RiskLevel;
 }
 
+export interface DeviceIntelligence {
+  _id?: string;
+  deviceHash: string;
+  userId: string;
+  firstSeen: string;
+  lastSeen: string;
+  deviceTrustScore: number;
+  deviceLabel: 'Trusted Device' | 'New Device' | 'Suspicious Device';
+  deviceRiskLevel: 'Low' | 'Medium' | 'High' | 'Critical';
+  userAgent?: string;
+  platform?: string;
+  timezone?: string;
+  gpuVendor?: string;
+  gpuRenderer?: string;
+  deviceMemory?: string | number;
+  cpuCores?: string | number;
+  lastKnownIp?: string;
+}
+
 export interface FraudExplanationRecord {
   _id?: string;
   transactionId: string;
   userId: string;
   fraudScore: number;
   explanations: FraudExplanation[];
+  featureContributions?: FeatureContribution[];
   createdAt: string;
 }
 
@@ -128,7 +178,7 @@ export interface PaginatedResponse<T> {
   pages: number;
 }
 
-export type CaseStatus = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'FALSE_POSITIVE';
+export type CaseStatus = 'NEW' | 'UNDER_INVESTIGATION' | 'ESCALATED' | 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE' | 'RESOLVED';
 export type CasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export interface CaseTimelineItem {
@@ -143,10 +193,11 @@ export interface CaseRecord {
   caseId: string;
   transactionId: string;
   alertId?: string;
-  assignedTo?: string;
-  status: CaseStatus;
+  investigatorId?: string;
+  caseStatus: CaseStatus;
   priority: CasePriority;
-  notes: string[];
+  caseNotes: string[];
+  evidenceFiles: string[];
   timeline: CaseTimelineItem[];
   createdAt: string;
   updatedAt: string;
@@ -239,3 +290,50 @@ export interface SystemSettings {
   updatedBy?: string;
   updatedAt: string;
 }
+
+// ── Graph Intelligence ────────────────────────────────────────────────────────
+
+export interface GraphNodeMetrics {
+  nodeId: string;
+  nodeType: 'USER' | 'DEVICE' | 'IP' | 'TRANSACTION' | 'CARD';
+  nodeDegree: number;
+  fraudNeighborRatio: number;
+  sharedDeviceCount: number;
+  sharedIPCount: number;
+  clusterDensity: number;
+  triangleCount: number;
+  graphScore: number;
+  isFraudNeighbor: boolean;
+  fraudScore: number;
+}
+
+export interface FraudCluster {
+  clusterId: string;
+  members: string[];
+  sharedDevices: string[];
+  sharedIPs: string[];
+  avgFraudScore: number;
+  size: number;
+}
+
+export interface GraphAnalytics {
+  nodes: GraphNodeMetrics[];
+  clusters: FraudCluster[];
+  totalNodes: number;
+  totalEdges: number;
+}
+
+/** Enriched D3 node coming from GET /graph */
+export interface EnrichedGraphNode {
+  id: string;
+  type: 'USER' | 'DEVICE' | 'IP' | 'TRANSACTION' | 'CARD';
+  riskScore: number;
+  fraudNeighborRatio: number;
+  clusterDensity: number;
+  graphScore: number;
+  sharedDevices: number;
+  sharedIPs: number;
+  isFraudCluster: boolean;
+  val: number;
+}
+

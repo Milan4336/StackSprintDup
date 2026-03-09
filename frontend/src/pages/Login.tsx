@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Fingerprint, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { apiClient, monitoringApi } from '../api/client';
+import { generateDeviceFingerprint } from '../utils/deviceFingerprint';
 import { useAuthStore } from '../store/auth';
 import { useIntroStore } from '../store/intro';
 import { SystemBootIntro } from '../components/intro/SystemBootIntro';
@@ -28,7 +29,8 @@ export const Login = () => {
     setError(null);
 
     try {
-      const response = await apiClient.post<{ token: string }>('/auth/login', { email, password });
+      const deviceFingerprint = await generateDeviceFingerprint();
+      const response = await apiClient.post<{ token: string }>('/auth/login', { email, password, deviceFingerprint });
 
       // Store token early for catch-all middleware or getMe()
       localStorage.setItem('token', response.data.token);

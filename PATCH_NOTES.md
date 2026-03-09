@@ -4,6 +4,14 @@ This document tracks the technical evolution of the Fraud Command Center, arrang
 
 ---
 
+## [Patch v3.13] — Today
+### Security & Zero Trust Verification
+- **Dynamic Step-Up Auth**: Introduced targeted multi-factor verification hurdles for anomalies matching the high-value, new-device risk profile.
+- **Cryptographic Device Verification**: Integrated biometric and device-level token validation within an intense interactive Zero Trust challenge.
+- **Verification HUD**: Shipped a cutting-edge 3-stage animated modal intercepting high-risk attempts mid-flight without disrupting the underlying user session.
+
+---
+
 ## [Patch v3.12] — Today
 ### Risk-Based Containment & Safe Mode
 - **4-Tier Threat Engine**: Replaced legacy system lockdown with a granular 4-tier risk architecture (Normal, Suspicious, High Risk, Critical).

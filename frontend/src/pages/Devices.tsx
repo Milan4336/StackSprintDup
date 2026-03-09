@@ -5,6 +5,7 @@ import { monitoringApi } from '../api/client';
 import { Smartphone, Laptop, ShieldAlert, AlertTriangle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Transaction } from '../types';
+import { DeviceIntelligencePanel } from '../components/dashboard/DeviceIntelligencePanel';
 
 interface DeviceRank {
     deviceId: string;
@@ -65,6 +66,12 @@ export const Devices = () => {
         connectLive();
         return () => disconnectLive();
     }, [connectLive, disconnectLive]);
+
+    const { data: deviceIntelligence } = useQuery({
+        queryKey: ['devices-intelligence'],
+        queryFn: () => monitoringApi.getDeviceIntelligence(100),
+        refetchInterval: 15000,
+    });
 
     const leaderboard = transactions ? computeDeviceLeaderboard(transactions) : [];
 
@@ -200,6 +207,12 @@ export const Devices = () => {
                         </AnimatePresence>
                     </div>
                 </div>
+            </div>
+
+            {/* Device Intelligence Section */}
+            <div>
+                <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4">Device Intelligence Profiles</h2>
+                <DeviceIntelligencePanel devices={deviceIntelligence || []} />
             </div>
         </div>
     );

@@ -12,7 +12,7 @@ export class FraudAIAgentService {
         private readonly alertRepository: FraudAlertRepository,
         private readonly caseRepository: CaseRepository,
         private readonly scoringService: FraudScoringService,
-        private readonly eventBus: typeof realtimeEventBus
+        private readonly eventBus: any
     ) { }
 
     start() {
@@ -68,10 +68,10 @@ export class FraudAIAgentService {
                 caseId: `CASE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 transactionId: alert.transactionId,
                 alertId: alert.alertId,
-                status: 'INVESTIGATING',
+                caseStatus: 'UNDER_INVESTIGATION',
                 priority: 'CRITICAL',
-                assignedTo: 'AI_AGENT',
-                notes: [`[AI Agent Escalation] ${reason}`]
+                investigatorId: 'AI_AGENT',
+                caseNotes: [`[AI Agent Escalation] ${reason}`]
             });
 
             alert.status = 'investigating';

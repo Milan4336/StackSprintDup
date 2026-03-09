@@ -14,6 +14,7 @@ import { HUDPanel, HUDDataReadout } from '../components/visual/HUDDecorations';
 import { IsolationPanel } from '../components/dashboard/IsolationPanel';
 import { FraudResponseLog } from '../components/dashboard/FraudResponseLog';
 import { AdminControlPanel } from '../components/dashboard/AdminControlPanel';
+import { DeviceIntelligencePanel } from '../components/dashboard/DeviceIntelligencePanel';
 
 const threatLevelColor = (index: number) => {
     if (index >= 86) return { text: 'text-red-400', label: 'Critical', bar: 'from-red-600 to-red-400' };
@@ -54,6 +55,12 @@ export const Overview = () => {
         queryKey: ['overview-explanations'],
         queryFn: () => monitoringApi.getExplanations(20),
         refetchInterval: 10000
+    });
+
+    const { data: deviceIntelligence } = useQuery({
+        queryKey: ['overview-device-intelligence'],
+        queryFn: () => monitoringApi.getDeviceIntelligence(50),
+        refetchInterval: 15000
     });
 
     useEffect(() => {
@@ -218,9 +225,13 @@ export const Overview = () => {
                             </HUDPanel>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <IsolationPanel />
                             <FraudResponseLog />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <DeviceIntelligencePanel devices={deviceIntelligence || []} />
                             <AdminControlPanel />
                         </div>
                     </>
