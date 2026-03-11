@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plane, Globe, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { monitoringApi } from '../api/client';
-import { FraudRadarMap } from '../components/radar/FraudRadarMap';
+import { FraudRadarMap, GeoHeatmap } from '../components';
 import { getSocket } from '../services/socket';
 import { Transaction } from '../types';
 
@@ -19,7 +19,7 @@ export const GeoAnalytics = () => {
         refetchInterval: 20000,
     });
 
-    // Transactions for FraudRadarMap
+    // Transactions for GeoHeatmap
     const { data: transactions = [] } = useQuery<Transaction[]>({
         queryKey: ['geo-transactions'],
         queryFn: () => monitoringApi.getTransactions(400),
@@ -166,6 +166,15 @@ export const GeoAnalytics = () => {
                     </div>
                 </div>
             )}
+
+            {/* Geo Heatmap */}
+            <div className="theme-surface-card p-6">
+                <h3 className="theme-stat-label mb-4">
+                    <Globe size={14} className="mr-2 inline" style={{ color: 'var(--accent)' }} />
+                    Global Attack Heatmap
+                </h3>
+                <GeoHeatmap transactions={txs} />
+            </div>
         </div>
     );
 };
