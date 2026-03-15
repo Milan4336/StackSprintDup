@@ -24,6 +24,8 @@ const AlertsPage = lazy(() => import('./pages/AlertsPage').then(m => ({ default:
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const ScamAdvisor = lazy(() => import('./pages/ScamAdvisor').then(m => ({ default: m.ScamAdvisor })));
 const AutonomousActions = lazy(() => import('./pages/AutonomousActions').then(m => ({ default: m.AutonomousActions })));
+const Simulation = lazy(() => import('./pages/Simulation').then(m => ({ default: m.Simulation })));
+const SystemHealth = lazy(() => import('./pages/SystemHealth').then(m => ({ default: m.SystemHealth })));
 
 const LoadingFallback = () => (
   <div className="flex h-full w-full items-center justify-center bg-slate-900">
@@ -58,6 +60,8 @@ const AppRoutes = () => {
           <Route path="alerts" element={<Suspense fallback={<LoadingFallback />}><AlertsPage /></Suspense>} />
           <Route path="scam-advisor" element={<Suspense fallback={<LoadingFallback />}><ScamAdvisor /></Suspense>} />
           <Route path="autonomous" element={<Suspense fallback={<LoadingFallback />}><AutonomousActions /></Suspense>} />
+          <Route path="simulation" element={<Suspense fallback={<LoadingFallback />}><Simulation /></Suspense>} />
+          <Route path="system-health" element={<Suspense fallback={<LoadingFallback />}><SystemHealth /></Suspense>} />
           
           <Route path="model-health" element={<ModelHealth />} />
           <Route path="updates" element={<Updates />} />

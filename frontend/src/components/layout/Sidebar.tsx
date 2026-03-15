@@ -25,19 +25,20 @@ interface SidebarProps {
 }
 
 const menu = [
-  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Transactions', to: '/transactions', icon: ListChecks },
-  { label: 'Alerts', to: '/alerts', icon: ShieldAlert },
-  { label: 'Cases', to: '/cases', icon: BellRing },
-  { label: 'Fraud Radar', to: '/radar', icon: Globe },
-  { label: 'Analytics', to: '/analytics', icon: Gauge },
-  { label: 'Model Health', to: '/model-health', icon: Cpu },
-  { label: 'User Behavior', to: '/behavior-profiles', icon: Users },
-  { label: 'Fraud Network', to: '/fraud-network', icon: Network },
-  { label: 'System Updates', to: '/updates', icon: Zap },
-  { label: 'System Health', to: '/system', icon: Activity },
+  { label: 'Dashboard', to: '/dashboard/overview', icon: LayoutDashboard },
+  { label: 'Transactions', to: '/dashboard/transactions', icon: ListChecks },
+  { label: 'Alerts', to: '/dashboard/alerts', icon: ShieldAlert },
+  { label: 'Fraud Pulse', to: '/dashboard/geo', icon: Globe },
+  { label: 'Intelligence', to: '/dashboard/intelligence', icon: Gauge },
+  { label: 'Model Health', to: '/dashboard/model-health', icon: Cpu },
+  { label: 'User Behavior', to: '/dashboard/behavior-profiles', icon: Users },
+  { label: 'Investigation Workspace', to: '/dashboard/network', icon: Network },
+  { label: 'Global Threat Globe', to: '/dashboard/autonomous', icon: Zap },
+  { label: 'Simulation', to: '/dashboard/simulation', icon: Rocket },
+  { label: 'System Health', to: '/dashboard/system-health', icon: Activity },
+  { label: 'System Updates', to: '/dashboard/updates', icon: ListChecks },
   { label: 'Scam Advisor', to: '/dashboard/scam-advisor', icon: MessageSquare },
-  { label: 'Settings', to: '/settings', icon: Settings }
+  { label: 'Settings', to: '/dashboard/settings', icon: Settings }
 ];
 
 export const Sidebar = ({ onLogout }: SidebarProps) => {

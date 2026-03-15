@@ -46,7 +46,7 @@ export class GeminiService {
             const cleanPrompt = prompt.trim().slice(0, 4000);
             const cleanContext = context?.slice(0, 30000);
             const fullPrompt = cleanContext
-                ? `Context: ${cleanContext}\n\nQuestion: ${cleanPrompt}\n\nAnswer based STRICTLY on the context above.`
+                ? `CONTEXT ANALYSIS:\n${cleanContext}\n\nUSER QUESTION: ${cleanPrompt}\n\nINSTRUCTION: Analyze the evidence above and provide the requested intelligence. Feel free to use your broader reasoning capabilities if the context is insufficient.`
                 : cleanPrompt;
 
             const result = await this.model.generateContent(fullPrompt);
