@@ -14,7 +14,8 @@ import {
     PanelRightClose,
     Newspaper,
     BarChart3,
-    Settings
+    Settings,
+    Zap
 } from 'lucide-react';
 import { NavItem } from './NavItem';
 import { useUiStore } from '../../store/ui';
@@ -26,15 +27,14 @@ export const LeftNav = () => {
         { to: '/dashboard/overview', icon: LayoutDashboard, label: 'Overview' },
         { to: '/dashboard/transactions', icon: ListRestart, label: 'Transactions', hideExecutive: true },
         { to: '/dashboard/intelligence', icon: BrainCircuit, label: 'Intelligence', hideExecutive: true },
-        { to: '/dashboard/investigation', icon: Network, label: 'Investigation Workspace', hideExecutive: true },
-        { to: '/dashboard/network', icon: Network, label: 'Global Graph', hideExecutive: true },
+        { to: '/dashboard/network', icon: Network, label: 'Investigation Workspace', hideExecutive: true },
         { to: '/dashboard/geo', icon: Map, label: 'Geo Analytics' },
         { to: '/dashboard/devices', icon: MonitorSmartphone, label: 'Devices' },
         { to: '/dashboard/alerts', icon: ShieldAlert, label: 'Alert Center', hideExecutive: false },
-        { to: '/dashboard/actions', icon: ShieldAlert, label: 'Global Threat Globe' },
+        { to: '/dashboard/autonomous', icon: Zap, label: 'Global Threat Globe' },
         { to: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/dashboard/simulation', icon: PlayCircle, label: 'Simulation' },
-        { to: '/dashboard/system', icon: ActivitySquare, label: 'System Health', hideExecutive: true },
+        { to: '/dashboard/system-health', icon: ActivitySquare, label: 'System Health', hideExecutive: true },
         { to: '/dashboard/updates', icon: Newspaper, label: 'Patch Notes' },
         { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
     ];
