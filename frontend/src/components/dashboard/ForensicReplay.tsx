@@ -24,7 +24,7 @@ export const ForensicReplay: React.FC<{ sessionId: string; onClose: () => void }
     const [currentTime, setCurrentTime] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<any>(null);
 
     useEffect(() => {
         const fetchReplay = async () => {
@@ -116,7 +116,7 @@ export const ForensicReplay: React.FC<{ sessionId: string; onClose: () => void }
 
                     {/* HUD Overlays in Virtual Viewport */}
                     <div className="absolute top-10 left-10 text-white/20 font-mono text-[14px]">
-                        REC_TIME: {currentTime.toFixed(2)}s / {replay?.duration.toFixed(2)}s
+                        REC_TIME: {currentTime.toFixed(2)}s / {(replay?.duration ?? 0).toFixed(2)}s
                     </div>
                 </div>
 
