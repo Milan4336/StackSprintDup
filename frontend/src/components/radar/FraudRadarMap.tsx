@@ -331,7 +331,7 @@ export const FraudRadarMap = memo(({ transactions, heightClass = 'h-[500px]' }: 
       .sort((a, b) => (safeDate(a.timestamp)?.getTime() ?? 0) - (safeDate(b.timestamp)?.getTime() ?? 0));
   }, [deferredTransactions, timePreset, customEnd, customStart]);
 
-  const { points, paths, highRiskCount, fraudDensityScore, mostTargetedCountry } = useMemo(() => {
+  const { points, paths, highRiskCount, fraudDensityScore, mostTargetedCountry, activeSpikes } = useMemo(() => {
     const userState = new Map<string, { seenDevices: Set<string>; previous?: Transaction }>();
     const pointsBuffer: RadarPoint[] = [];
 

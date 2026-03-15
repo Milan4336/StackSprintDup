@@ -24,7 +24,7 @@ export const ForensicReplay: React.FC<{ sessionId: string; onClose: () => void }
     const [currentTime, setCurrentTime] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
-    const timerRef = useRef<any>(null);
+    const timerRef = useRef<number | null>(null);
 
     useEffect(() => {
         const fetchReplay = async () => {
