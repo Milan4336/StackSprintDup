@@ -27,7 +27,7 @@ export const LeftNav = () => {
         { to: '/dashboard/overview', icon: LayoutDashboard, label: 'Overview' },
         { to: '/dashboard/transactions', icon: ListRestart, label: 'Transactions', hideExecutive: true },
         { to: '/dashboard/intelligence', icon: BrainCircuit, label: 'Intelligence', hideExecutive: true },
-        { to: '/dashboard/network', icon: Network, label: 'Investigation Workspace', hideExecutive: true },
+        { to: '/dashboard/investigations', icon: Network, label: 'Investigation Workspace', hideExecutive: true },
         { to: '/dashboard/geo', icon: Map, label: 'Geo Analytics' },
         { to: '/dashboard/devices', icon: MonitorSmartphone, label: 'Devices' },
         { to: '/dashboard/alerts', icon: ShieldAlert, label: 'Alert Center', hideExecutive: false },

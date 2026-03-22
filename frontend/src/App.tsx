@@ -1,11 +1,9 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, BrowserRouter } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { CommandCenterLayout } from './layouts/CommandCenterLayout';
 import { Login } from './pages/Login';
 import { useAuthStore } from './store/auth';
-import { ForensicReplay } from './components/dashboard/ForensicReplay';
-import { AnimatePresence } from 'framer-motion';
 
 // Legacy or simple imports
 import { ModelHealth } from './pages/ModelHealth';
@@ -21,6 +19,7 @@ const NetworkGraph = lazy(() => import('./pages/NetworkGraph').then(m => ({ defa
 const GeoAnalytics = lazy(() => import('./pages/GeoAnalytics').then(m => ({ default: m.GeoAnalytics })));
 const Devices = lazy(() => import('./pages/Devices').then(m => ({ default: m.Devices })));
 const AlertsPage = lazy(() => import('./pages/AlertsPage').then(m => ({ default: m.AlertsPage })));
+const Investigations = lazy(() => import('./pages/Investigations').then(m => ({ default: m.Investigations })));
 const UserDashboard = lazy(() => import('./pages/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const ScamAdvisor = lazy(() => import('./pages/ScamAdvisor').then(m => ({ default: m.ScamAdvisor })));
 const AutonomousActions = lazy(() => import('./pages/AutonomousActions').then(m => ({ default: m.AutonomousActions })));
@@ -56,6 +55,7 @@ const AppRoutes = () => {
           <Route path="transactions" element={<Suspense fallback={<LoadingFallback />}><Transactions /></Suspense>} />
           <Route path="intelligence" element={<Suspense fallback={<LoadingFallback />}><Intelligence /></Suspense>} />
           <Route path="network" element={<Suspense fallback={<LoadingFallback />}><NetworkGraph /></Suspense>} />
+          <Route path="investigations" element={<Suspense fallback={<LoadingFallback />}><Investigations /></Suspense>} />
           <Route path="geo" element={<Suspense fallback={<LoadingFallback />}><GeoAnalytics /></Suspense>} />
           <Route path="devices" element={<Suspense fallback={<LoadingFallback />}><Devices /></Suspense>} />
           <Route path="alerts" element={<Suspense fallback={<LoadingFallback />}><AlertsPage /></Suspense>} />
@@ -78,32 +78,20 @@ const AppRoutes = () => {
 };
 
 export const App = () => {
-  const [forensicSessionId, setForensicSessionId] = useState<string | null>(null);
-
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
       document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
     };
     window.addEventListener('mousemove', handleMouseMove);
-    (window as any).showForensicReplay = (id: string) => setForensicSessionId(id);
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      delete (window as any).showForensicReplay;
     };
   }, []);
 
   return (
     <BrowserRouter>
       <div className="min-h-screen theme-surface-1 text-white overflow-x-hidden">
-        <AnimatePresence>
-          {forensicSessionId && (
-            <ForensicReplay
-              sessionId={forensicSessionId}
-              onClose={() => setForensicSessionId(null)}
-            />
-          )}
-        </AnimatePresence>
         <AppRoutes />
       </div>
     </BrowserRouter>

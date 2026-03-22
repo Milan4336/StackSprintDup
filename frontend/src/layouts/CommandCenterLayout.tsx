@@ -4,9 +4,10 @@ import { useUiStore } from '../store/ui';
 import { Bot, User, LogOut, Volume2, VolumeX } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { SystemStatusBar } from '../components/layout/SystemStatusBar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useThreatStore } from '../store/threatStore';
 import { ThreatAudioEngine } from '../components/visual/ThreatAudioEngine';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Visual Intelligence Layer
 import { ThreatBorderGlow } from '../components/visual/ThreatBorderGlow';
@@ -23,6 +24,7 @@ import { AttackModeOverlay } from '../components/visual/AttackModeOverlay';
 import { FraudCopilot } from '../components/intelligence/FraudCopilot';
 import { ThreatLevelIndicator } from '../components/threat/ThreatLevelIndicator';
 import { ThreatLockdownModal } from '../components/security/ThreatLockdownModal';
+import { ForensicReplay } from '../components/dashboard/ForensicReplay';
 
 export const CommandCenterLayout = () => {
     const { isExecutiveMode, toggleExecutiveMode } = useUiStore();
@@ -30,6 +32,13 @@ export const CommandCenterLayout = () => {
     const user = useAuthStore((state) => state.user);
     const isAudioEnabled = useUiStore((state) => state.isAudioEnabled);
     const connectThreatSocket = useThreatStore((state) => state.connectThreatSocket);
+    const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+    // Legacy handler activation
+    useEffect(() => {
+        (window as any).showForensicReplay = (sid: string) => setActiveSessionId(sid);
+        return () => { delete (window as any).showForensicReplay; };
+    }, []);
 
     // Connect threat socket on mount
     useEffect(() => {
@@ -145,6 +154,14 @@ export const CommandCenterLayout = () => {
                 <SystemStatusBar />
             </div>
             <ThreatLockdownModal />
+            <AnimatePresence>
+                {activeSessionId && (
+                    <ForensicReplay 
+                        sessionId={activeSessionId} 
+                        onClose={() => setActiveSessionId(null)} 
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };

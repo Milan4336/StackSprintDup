@@ -10,7 +10,7 @@ interface NavItemProps {
 
 export const NavItem = ({ to, icon: Icon, label, isCollapsed }: NavItemProps) => {
     const location = useLocation();
-    const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
+    const isActive = location.pathname === to;
 
     return (
         <Link

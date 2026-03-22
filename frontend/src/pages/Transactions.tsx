@@ -98,7 +98,17 @@ export const Transactions = () => {
         </p>
         <p className="relative z-10 truncate">{tx.action ?? 'N/A'}</p>
         <p className="theme-muted-text relative z-10 truncate">{formatSafeDate(tx.timestamp)}</p>
-        <p className="relative z-10" style={{ color: tx.isFraud ? 'var(--status-danger)' : 'var(--status-success)' }}>{tx.isFraud ? '●' : '●'}</p>
+        <div className="relative z-10 flex justify-center">
+            <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    (window as any).showForensicReplay?.(tx.transactionId);
+                }}
+                className="h-2 w-2 rounded-full hover:scale-150 transition-transform cursor-pointer"
+                style={{ background: tx.isFraud ? 'var(--status-danger)' : 'var(--status-success)' }}
+                title="Execute Forensic Replay"
+            />
+        </div>
       </div>
     );
   };
