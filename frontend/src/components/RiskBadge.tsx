@@ -11,7 +11,7 @@ const toneMap: Record<RiskLevel, string> = {
 };
 
 export const RiskBadge = ({ value }: RiskBadgeProps) => (
-  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition ${toneMap[value]}`}>
+  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${toneMap[value]}`}>
     {value}
   </span>
 );

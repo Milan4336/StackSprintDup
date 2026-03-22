@@ -8,12 +8,4 @@ export class FraudExplanationRepository {
   async findRecent(limit = 100): Promise<FraudExplanationDocument[]> {
     return FraudExplanationModel.find({}).sort({ createdAt: -1 }).limit(limit);
   }
-
-  async findByTransactionId(transactionId: string): Promise<FraudExplanationDocument | null> {
-    return FraudExplanationModel.findOne({ transactionId }).sort({ createdAt: -1 });
-  }
-
-  async findByUser(userId: string, limit = 50): Promise<FraudExplanationDocument[]> {
-    return FraudExplanationModel.find({ userId }).sort({ createdAt: -1 }).limit(limit);
-  }
 }

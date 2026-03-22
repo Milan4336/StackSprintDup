@@ -4,4 +4,3 @@ pydantic==2.10.6
 numpy==2.2.2
 scikit-learn==1.6.1
 prometheus-client==0.21.1
-xgboost==2.1.3

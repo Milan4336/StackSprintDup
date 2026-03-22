@@ -11,7 +11,6 @@ export interface FraudExplanationDocument extends Document {
   userId: string;
   fraudScore: number;
   explanations: FraudExplanationItem[];
-  aiExplanation?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,8 +29,7 @@ const fraudExplanationSchema = new Schema<FraudExplanationDocument>(
     transactionId: { type: String, required: true, index: true },
     userId: { type: String, required: true, index: true },
     fraudScore: { type: Number, required: true },
-    explanations: { type: [explanationItemSchema], required: true },
-    aiExplanation: { type: String, required: false }
+    explanations: { type: [explanationItemSchema], required: true }
   },
   { timestamps: true, collection: 'fraud_explanations' }
 );

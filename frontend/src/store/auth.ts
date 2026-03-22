@@ -1,23 +1,10 @@
 import { create } from 'zustand';
 
-interface UserProfile {
-  userId: string;
-  email: string;
-  role: string;
-  status: string;
-  riskScore: number;
-  lastLogin?: string;
-  mfaEnabled?: boolean;
-  mfaVerifiedAt?: string | null;
-}
-
 interface AuthState {
   token: string | null;
-  user: UserProfile | null;
   isAuthenticated: boolean;
-  login: (token: string, user?: UserProfile) => void;
+  login: (token: string) => void;
   logout: () => void;
-  setUser: (user: UserProfile | null) => void;
 }
 
 const parseJwtPayload = (token: string): Record<string, unknown> | null => {
@@ -60,21 +47,15 @@ const getInitialToken = (): string | null => {
 
 const initialToken = getInitialToken();
 
-import { updateSocketAuth } from '../services/socket';
-
 export const useAuthStore = create<AuthState>((set) => ({
   token: initialToken,
-  user: null,
   isAuthenticated: Boolean(initialToken),
-  login: (token: string, user?: UserProfile) => {
+  login: (token: string) => {
     localStorage.setItem('token', token);
-    updateSocketAuth(token);
-    set({ token, isAuthenticated: true, user: user || null });
+    set({ token, isAuthenticated: true });
   },
   logout: () => {
     localStorage.removeItem('token');
-    updateSocketAuth(null);
-    set({ token: null, isAuthenticated: false, user: null });
-  },
-  setUser: (user: UserProfile | null) => set({ user })
+    set({ token: null, isAuthenticated: false });
+  }
 }));

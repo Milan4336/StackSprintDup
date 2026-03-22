@@ -1,31 +1,38 @@
-import { createContext, ReactNode, useContext, useLayoutEffect, useMemo } from 'react';
-import { AppTheme, useThemeStore } from '../store/theme';
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+
+type Theme = 'light' | 'dark';
 
 interface ThemeContextValue {
-  theme: AppTheme;
+  theme: Theme;
   toggleTheme: () => void;
-  setTheme: (theme: AppTheme) => void;
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const theme = useThemeStore((state) => state.theme);
-  const initialize = useThemeStore((state) => state.initialize);
-  const setTheme = useThemeStore((state) => state.setTheme);
-  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+const readInitialTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'dark';
+  const stored = localStorage.getItem('theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  return 'dark';
+};
 
-  useLayoutEffect(() => {
-    initialize();
-  }, [initialize]);
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const [theme, setThemeState] = useState<Theme>(readInitialTheme);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
-      setTheme,
-      toggleTheme
+      setTheme: (next: Theme) => setThemeState(next),
+      toggleTheme: () => setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'))
     }),
-    [theme, setTheme, toggleTheme]
+    [theme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

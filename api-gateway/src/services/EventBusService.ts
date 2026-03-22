@@ -16,14 +16,4 @@ export class EventBusService {
   async publishSimulationEvent(payload: unknown): Promise<void> {
     await redisClient.publish('simulation.events', JSON.stringify(payload));
   }
-
-  // Generic publisher for Dashboard V3 realtime events
-  async publishDashboardEvent(event: string, payload: unknown): Promise<void> {
-    const message = {
-      event,
-      timestamp: new Date().toISOString(),
-      payload
-    };
-    await redisClient.publish(event, JSON.stringify(message));
-  }
 }

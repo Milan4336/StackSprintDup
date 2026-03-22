@@ -1,102 +1,114 @@
-import React, { memo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { memo, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { divIcon } from 'leaflet';
+import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { Transaction } from '../../types';
 
-// Fix Leaflet icon issues
-const DefaultIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
-
-const FraudIcon = L.divIcon({
-    className: 'fraud-marker',
-    html: `
-        <div class="relative flex items-center justify-center">
-            <div class="absolute h-6 w-6 animate-ping rounded-full bg-red-500 opacity-75"></div>
-            <div class="relative h-4 w-4 rounded-full bg-red-600 border-2 border-white shadow-lg"></div>
-        </div>
-    `,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12]
-});
-
-const NormalIcon = L.divIcon({
-    className: 'normal-marker',
-    html: `<div class="h-2 w-2 rounded-full bg-cyan-500 border border-white opacity-60"></div>`,
-    iconSize: [8, 8],
-    iconAnchor: [4, 4]
-});
-
 interface FraudRadarMapProps {
-    transactions: Transaction[];
+  transactions: Transaction[];
 }
 
-const MapController = () => {
-    const map = useMap();
-    React.useEffect(() => {
-        setTimeout(() => map.invalidateSize(), 100);
-    }, [map]);
-    return null;
+const locationMap: Record<string, [number, number]> = {
+  ny: [40.7128, -74.006],
+  newyork: [40.7128, -74.006],
+  ca: [36.7783, -119.4179],
+  california: [36.7783, -119.4179],
+  tx: [31.9686, -99.9018],
+  texas: [31.9686, -99.9018],
+  fl: [27.6648, -81.5158],
+  florida: [27.6648, -81.5158],
+  wa: [47.7511, -120.7401],
+  washington: [47.7511, -120.7401],
+  london: [51.5072, -0.1276],
+  delhi: [28.6139, 77.209],
+  tokyo: [35.6762, 139.6503],
+  dubai: [25.2048, 55.2708],
+  sydney: [-33.8688, 151.2093]
+};
+
+const normalizeLocation = (value: string): string => value.trim().toLowerCase().replace(/\s+/g, '');
+
+const isValidCoordinates = (lat: number, lng: number): boolean =>
+  Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+const fraudIcon = divIcon({
+  html: '<span class="radar-marker-dot radar-marker-fraud"></span>',
+  className: 'radar-marker',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10]
+});
+
+const legitIcon = divIcon({
+  html: '<span class="radar-marker-dot radar-marker-safe"></span>',
+  className: 'radar-marker',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8]
+});
+
+const coordinatesForTransaction = (tx: Transaction): [number, number] | null => {
+  if (
+    typeof tx.latitude === 'number' &&
+    typeof tx.longitude === 'number' &&
+    isValidCoordinates(tx.latitude, tx.longitude)
+  ) {
+    return [tx.latitude, tx.longitude];
+  }
+
+  const mapped = locationMap[normalizeLocation(tx.location)];
+  if (!mapped) return null;
+  return mapped;
 };
 
 export const FraudRadarMap = memo(({ transactions }: FraudRadarMapProps) => {
-    return (
-        <div className="h-full w-full relative">
-            <MapContainer
-                center={[20, 0]}
-                zoom={2}
-                style={{ height: '100%', width: '100%', background: '#0f172a' }}
-                zoomControl={false}
-                attributionControl={false}
-            >
-                <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                />
-                <MapController />
-                {transactions.slice(0, 50).map((tx) => {
-                    // Fallback coordinates if missing
-                    const lat = tx.lat || (Math.random() * 120 - 60);
-                    const lng = tx.lng || (Math.random() * 240 - 120);
+  const points = useMemo(() => {
+    const mapped = transactions.slice(0, 140).map((tx) => {
+      const coords = coordinatesForTransaction(tx);
+      if (!coords) return null;
+      return { tx, coords };
+    });
+    return mapped.filter((item): item is { tx: Transaction; coords: [number, number] } => item !== null);
+  }, [transactions]);
 
-                    return (
-                        <Marker 
-                            key={tx.transactionId} 
-                            position={[lat, lng]} 
-                            icon={tx.isFraud ? FraudIcon : NormalIcon}
-                        >
-                            <Popup className="theme-popup">
-                                <div className="p-2">
-                                    <p className="font-black text-xs uppercase tracking-tighter">
-                                        TX: {tx.transactionId}
-                                    </p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                                        RISK: <span className={tx.isFraud ? 'text-red-500' : 'text-cyan-500'}>
-                                            {tx.riskLevel}
-                                        </span>
-                                    </p>
-                                    <p className="text-[10px] font-mono mt-1">${tx.amount.toLocaleString()}</p>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
-            </MapContainer>
-            
-            <div className="absolute top-4 right-4 z-[1000] p-3 rounded-xl glass-panel text-[10px] font-black uppercase tracking-widest text-white/60">
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                    <span>Live Fraud Cluster</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-cyan-500" />
-                    <span>Standard Node</span>
-                </div>
-            </div>
-        </div>
-    );
+  return (
+    <motion.article
+      className="panel"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
+      <h3 className="panel-title">Real-Time Fraud Radar World Map</h3>
+      {points.length === 0 ? (
+        <p className="mb-3 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm text-slate-400">
+          No geo-mapped transactions yet. Create or simulate transactions.
+        </p>
+      ) : null}
+      <div className="h-96 overflow-hidden rounded-xl border border-slate-700">
+        <MapContainer center={[20, 0]} zoom={2} scrollWheelZoom className="h-full w-full">
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {points.map(({ tx, coords }) => {
+            const isFraud = tx.isFraud || tx.riskLevel === 'High';
+            return (
+              <Marker key={tx.transactionId} position={coords} icon={isFraud ? fraudIcon : legitIcon}>
+                <Popup>
+                  <div className="text-xs text-slate-900">
+                    <p className="font-bold">{tx.transactionId}</p>
+                    <p>User: {tx.userId}</p>
+                    <p>Location: {tx.location}</p>
+                    <p>Amount: ${tx.amount.toLocaleString()}</p>
+                    <p>
+                      Risk: {tx.riskLevel} ({tx.fraudScore})
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MapContainer>
+      </div>
+    </motion.article>
+  );
 });

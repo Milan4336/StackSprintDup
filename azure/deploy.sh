@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -81,7 +81,7 @@ log "Creating resource group and shared services"
 az group create \
   --name "${AZ_RESOURCE_GROUP}" \
   --location "${AZ_LOCATION}" \
-  
+  --only-show-errors >/dev/null
 
 if ! az acr show --name "${AZ_ACR_NAME}" --resource-group "${AZ_RESOURCE_GROUP}" >/dev/null 2>&1; then
   az acr create \
@@ -132,15 +132,16 @@ if [[ -z "${COSMOS_CONN_RAW}" ]]; then
   exit 1
 fi
 
-MONGO_URI="$(echo "${COSMOS_CONN_RAW}" | sed "s|10255/?|10255/${AZ_COSMOS_DB_NAME}?|")"
+MONGO_URI="$(echo "${COSMOS_CONN_RAW}" | sed "s|/\\?|/${AZ_COSMOS_DB_NAME}?|")"
 
 if ! az redis show --name "${AZ_REDIS_NAME}" --resource-group "${AZ_RESOURCE_GROUP}" >/dev/null 2>&1; then
   az redis create \
-  --name $AZ_REDIS_NAME \
-  --resource-group $AZ_RESOURCE_GROUP \
-  --location $AZ_LOCATION \
-  --sku Basic \
-  --vm-size C0 \
+    --name "${AZ_REDIS_NAME}" \
+    --resource-group "${AZ_RESOURCE_GROUP}" \
+    --location "${AZ_LOCATION}" \
+    --sku Basic \
+    --vm-size C0 \
+    --enable-non-ssl-port false \
     --only-show-errors >/dev/null
 fi
 
@@ -330,7 +331,7 @@ fi
 REGISTER_CODE="$(curl -s -o /tmp/azure-register.json -w '%{http_code}' \
   -X POST "${API_URL}/api/v1/auth/register" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@fraud.local","password":"StrongPassword123!","role":"admin"}')"
+  -d '{"email":"admin@fraud.local","password":"StrongPass123!","role":"admin"}')"
 
 if [[ "${REGISTER_CODE}" != "201" && "${REGISTER_CODE}" != "409" ]]; then
   echo "Register verification failed (${REGISTER_CODE})."
@@ -340,7 +341,7 @@ fi
 
 LOGIN_JSON="$(curl -s -X POST "${API_URL}/api/v1/auth/login" \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@fraud.local","password":"StrongPassword123!"}')"
+  -d '{"email":"admin@fraud.local","password":"StrongPass123!"}')"
 
 TOKEN="$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("token",""))' <<<"${LOGIN_JSON}")"
 if [[ -z "${TOKEN}" ]]; then

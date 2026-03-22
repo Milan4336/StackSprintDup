@@ -7,12 +7,7 @@ export const hashPassword = (value: string): string => {
 };
 
 export const comparePassword = (value: string, encoded: string): boolean => {
-  const parts = encoded.split(':');
-  if (parts.length !== 2) return false;
-  const [salt, hash] = parts;
+  const [salt, hash] = encoded.split(':');
   const candidate = crypto.scryptSync(value, salt, 64).toString('hex');
-  const hashBuf = Buffer.from(hash, 'hex');
-  const candidateBuf = Buffer.from(candidate, 'hex');
-  if (hashBuf.length !== candidateBuf.length) return false;
-  return crypto.timingSafeEqual(hashBuf, candidateBuf);
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(candidate, 'hex'));
 };

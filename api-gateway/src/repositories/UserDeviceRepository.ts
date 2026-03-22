@@ -1,10 +1,6 @@
 import { UserDeviceDocument, UserDeviceModel } from '../models/UserDevice';
 
 export class UserDeviceRepository {
-  async findById(id: string): Promise<UserDeviceDocument | null> {
-    return UserDeviceModel.findOne({ $or: [{ deviceId: id }, { userId: id }] });
-  }
-
   async findByUserAndDevice(userId: string, deviceId: string): Promise<UserDeviceDocument | null> {
     return UserDeviceModel.findOne({ userId, deviceId });
   }
@@ -31,9 +27,5 @@ export class UserDeviceRepository {
 
   async findRecent(limit = 200): Promise<UserDeviceDocument[]> {
     return UserDeviceModel.find({}).sort({ updatedAt: -1 }).limit(limit);
-  }
-
-  async findByUser(userId: string, limit = 200): Promise<UserDeviceDocument[]> {
-    return UserDeviceModel.find({ userId }).sort({ updatedAt: -1 }).limit(limit);
   }
 }

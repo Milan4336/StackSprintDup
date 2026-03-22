@@ -1,87 +1,94 @@
-version: "3.9"
-
 services:
-
   mongo:
     image: mongo:7
-    container_name: fraud-mongo
-    ports:
-      - "27017:27017"
+    env_file:
+      - .env
+    ports: ["27017:27017"]
     volumes:
-      - mongo-data:/data/db
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval \"db.adminCommand('ping')\" --quiet || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - fraud-net
 
   redis:
-    image: redis:7-alpine
-    container_name: fraud-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
+    image: redis:7
+    env_file:
+      - .env
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - fraud-net
 
   ml-service:
     build: ./ml-service
-    container_name: fraud-ml-service
-    ports:
-      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - MODEL_PATH=${MODEL_PATH}
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - fraud-net
 
   api-gateway:
     build: ./api-gateway
-    container_name: fraud-api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
-      - NODE_ENV=development
-      - MONGO_URI=mongodb://mongo:27017/fraud
-      - REDIS_URI=redis://redis:6379
-      - ML_SERVICE_URL=http://ml-service:8000
-      - JWT_SECRET=supersecretminimum32charactersforjwt
-      - JWT_EXPIRES_IN=1h
-      - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY:-}
-      - SECRET_PROVIDER=${SECRET_PROVIDER:-env}
-      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
-      - PINECONE_INDEX_HOST=${PINECONE_INDEX_HOST:-}
-      - PINECONE_NAMESPACE=${PINECONE_NAMESPACE:-fraud-copilot}
-      - MFA_TOTP_ISSUER=${MFA_TOTP_ISSUER:-Stack Sprint Fraud Command Center}
-      - LOCKDOWN_THREAT_THRESHOLD=${LOCKDOWN_THREAT_THRESHOLD:-90}
-      - LOKI_PUSH_URL=${LOKI_PUSH_URL:-}
-      - LOKI_LABELS=${LOKI_LABELS:-service=api-gateway,stack=stack-sprint}
-      - DOCKER_SOCKET_PATH=/var/run/docker.sock
-      - DOCKER_CONTAINERS=${DOCKER_CONTAINERS:-fraud-api-gateway,fraud-ml-service,fraud-mongo,fraud-redis}
-      - RATE_LIMIT_WINDOW_SECONDS=${RATE_LIMIT_WINDOW_SECONDS:-60}
-      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-120}
-      - RATE_LIMIT_AUTH_MAX=${RATE_LIMIT_AUTH_MAX:-20}
-      - RATE_LIMIT_LOGIN_MAX=${RATE_LIMIT_LOGIN_MAX:-8}
-    volumes:
-      - ./PATCH_NOTES.md:/app/PATCH_NOTES.md
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env_file:
+      - .env
+    ports: ["8080:8080"]
     depends_on:
-      - mongo
-      - redis
-      - ml-service
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - fraud-net
 
   frontend:
-    build: ./frontend
-    container_name: fraud-frontend
-    ports:
-      - "5173:80"
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    env_file:
+      - .env
+    ports: ["5173:80"]
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - fraud-net
+
+volumes:
+  mongo_data:
 
 networks:
   fraud-net:
     driver: bridge
-
-volumes:
-  mongo-data:
-  redis-data:

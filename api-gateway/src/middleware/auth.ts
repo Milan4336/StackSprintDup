@@ -10,26 +10,12 @@ export const authMiddleware = (req: Request, _res: Response, next: NextFunction)
 
   const token = authHeader.replace('Bearer ', '').trim();
   req.user = verifyJwt(token);
-
-  if (req.user?.mfaPending) {
-    const path = req.path.toLowerCase();
-    const allowedWhilePending =
-      path === '/api/v1/auth/mfa/verify' ||
-      path === '/api/v1/auth/mfa/status';
-
-    if (!allowedWhilePending) {
-      throw new AppError('MFA verification required', 401);
-    }
-  }
-
   next();
 };
 
-export const roleMiddleware = (allowedRoles: Array<'admin' | 'analyst' | 'user'>) =>
+export const roleMiddleware = (allowedRoles: Array<'admin' | 'analyst'>) =>
   (req: Request, _res: Response, next: NextFunction): void => {
-    // Explicit comparison to bypass strict array-includes issues in some TS environments
-    const userRole = req.user?.role;
-    if (!userRole || !allowedRoles.some(role => String(role) === String(userRole))) {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
       throw new AppError('Forbidden', 403);
     }
     next();

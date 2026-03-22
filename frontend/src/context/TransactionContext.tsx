@@ -54,26 +54,10 @@ const computeStatsFromTransactions = (transactions: Transaction[]): TransactionS
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
 
-  const countryMap = new Map<string, { fraudCount: number; total: number }>();
-  for (const tx of transactions) {
-    const country = tx.country || tx.location || 'Unknown';
-    const entry = countryMap.get(country) ?? { fraudCount: 0, total: 0 };
-    entry.total += 1;
-    if (tx.isFraud) entry.fraudCount += 1;
-    countryMap.set(country, entry);
-  }
-  const fraudByCountry = Array.from(countryMap.entries())
-    .map(([country, v]) => ({ country, ...v }))
-    .sort((a, b) => b.fraudCount - a.fraudCount)
-    .slice(0, 8);
-
   return {
     fraudRate: total ? fraudCount / total : 0,
     avgRiskScore,
-    highRiskUsers,
-    totalTransactions: total,
-    fraudTransactions: fraudCount,
-    fraudByCountry
+    highRiskUsers
   };
 };
 
@@ -89,30 +73,13 @@ const normalizeTransaction = (raw: Partial<Transaction>): Transaction => {
     location: raw.location || 'Unknown',
     latitude: typeof raw.latitude === 'number' ? raw.latitude : undefined,
     longitude: typeof raw.longitude === 'number' ? raw.longitude : undefined,
-    city: raw.city,
-    country: raw.country,
     deviceId: raw.deviceId || 'unknown-device',
     ipAddress: raw.ipAddress || '0.0.0.0',
     timestamp,
-    action: raw.action,
-    ruleScore: typeof raw.ruleScore === 'number' ? raw.ruleScore : undefined,
-    mlScore: typeof raw.mlScore === 'number' ? raw.mlScore : undefined,
-    mlStatus: raw.mlStatus,
-    modelVersion: raw.modelVersion,
-    modelName: raw.modelName,
-    modelConfidence: typeof raw.modelConfidence === 'number' ? raw.modelConfidence : undefined,
-    modelScores: raw.modelScores,
-    modelWeights: raw.modelWeights,
     fraudScore: Number(raw.fraudScore ?? 0),
     riskLevel,
     isFraud: Boolean(raw.isFraud ?? riskLevel === 'High'),
-    geoVelocityFlag: Boolean(raw.geoVelocityFlag ?? false),
-    ruleReasons: Array.isArray(raw.ruleReasons) ? raw.ruleReasons : [],
-    explanations: raw.explanations,
-    verificationStatus: raw.verificationStatus,
-    aiExplanation: raw.aiExplanation,
-    createdAt: raw.createdAt,
-    updatedAt: raw.updatedAt
+    explanations: raw.explanations
   };
 };
 
@@ -231,11 +198,30 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
     void fetchTransactions();
   }, [fetchTransactions, isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = window.setInterval(() => {
+      void refreshTransactions();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [isAuthenticated, refreshTransactions]);
 
   useEffect(() => {
-    // Legacy global socket listener removed.
-    // Realtime events are now handled by page-specific Zustand slices
-    // (e.g. useTransactionsSlice) to prevent global re-renders.
+    if (!isAuthenticated) return;
+    const socket: Socket = getSocket() ?? connectSocket();
+
+    const onLiveTransaction = (payload: Partial<Transaction>) => {
+      addTransaction(normalizeTransaction(payload));
+    };
+
+    socket.on('transactions.live', onLiveTransaction);
+
+    return () => {
+      socket.off('transactions.live', onLiveTransaction);
+    };
   }, [addTransaction, isAuthenticated]);
 
   const value = useMemo<TransactionContextValue>(

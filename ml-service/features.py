@@ -11,17 +11,6 @@ LOCATION_MAP: Dict[str, Tuple[float, float]] = {
     "TX": (31.9686, -99.9018),
     "FL": (27.6648, -81.5158),
     "WA": (47.7511, -120.7401),
-    "LONDON": (51.5072, -0.1276),
-    "PARIS": (48.8566, 2.3522),
-    "BERLIN": (52.5200, 13.4050),
-    "DUBAI": (25.2048, 55.2708),
-    "TOKYO": (35.6762, 139.6503),
-    "SYDNEY": (-33.8688, 151.2093),
-    "MUMBAI": (19.0760, 72.8777),
-    "DELHI": (28.6139, 77.2090),
-    "SINGAPORE": (1.3521, 103.8198),
-    "HONGKONG": (22.3193, 114.1694),
-    "TORONTO": (43.6532, -79.3832),
 }
 
 
@@ -50,12 +39,10 @@ class FeatureEngineer:
 
     @staticmethod
     def _haversine_km(a: str, b: str) -> float:
-        loc_a = a.upper() if a else ""
-        loc_b = b.upper() if b else ""
-        if loc_a not in LOCATION_MAP or loc_b not in LOCATION_MAP:
+        if a not in LOCATION_MAP or b not in LOCATION_MAP:
             return 0.0
-        lat1, lon1 = LOCATION_MAP[loc_a]
-        lat2, lon2 = LOCATION_MAP[loc_b]
+        lat1, lon1 = LOCATION_MAP[a]
+        lat2, lon2 = LOCATION_MAP[b]
         r = 6371.0
         dlat = radians(lat2 - lat1)
         dlon = radians(lon2 - lon1)

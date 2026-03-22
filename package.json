@@ -2,10 +2,15 @@
   "name": "cloud-native-fraud-detection",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "api-gateway",
+    "frontend"
+  ],
   "scripts": {
-    "build:api": "cd api-gateway && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "build": "npm run build:api && npm run build:frontend",
-    "deploy": "cd azure && bash deploy.sh"
+    "install:all": "npm install --workspaces",
+    "build": "npm run build -w api-gateway && npm run build -w frontend",
+    "dev": "npm run dev -w api-gateway",
+    "dev:frontend": "npm run dev -w frontend",
+    "start": "npm run start -w api-gateway"
   }
 }

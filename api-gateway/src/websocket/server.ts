@@ -12,35 +12,9 @@ const resolveToken = (candidate: unknown): string | null => {
   return candidate.trim();
 };
 
-// All Redis channels that the dashboard needs forwarded to Socket.IO clients
-const SUBSCRIBED_CHANNELS = [
-  // Transaction events
-  'transactions.live',
-  'transactions.created',
-  // Fraud / alert events
-  'fraud.alerts',
-  // Simulation events
-  'simulation.events',
-  // Dashboard Intelligence Cron events
-  'system.threatIndex',
-  'system.riskPulse',
-  'system.spike',
-  'system.modelConfidence',
-  'velocity.live',
-  'drift.live',
-  'risk.forecast',
-  'alerts.pressure',
-  // Geo & Collusion
-  'geo.live',
-  'collusion.detected',
-  // System actions feed
-  'system.actions',
-];
-
 class GatewayWebSocketServer {
   private io?: SocketIOServer;
   private subscriber?: Redis;
-  private initialized = false;
 
   async initialize(httpServer: HttpServer): Promise<void> {
     this.io = new SocketIOServer(httpServer, {
@@ -51,14 +25,20 @@ class GatewayWebSocketServer {
     });
 
     this.io.use((socket, next) => {
+      const authToken = resolveToken(socket.handshake.auth?.token);
+      const headerToken = resolveToken(socket.handshake.headers.authorization);
+      const token = authToken ?? headerToken;
+
+      if (!token) {
+        next(new Error('Unauthorized'));
+        return;
+      }
+
       try {
-        const token = resolveToken(socket.handshake.auth?.token || socket.handshake.headers?.authorization);
-        if (!token) return next(new Error('Authentication error'));
-        const decoded = verifyJwt(token);
-        (socket as any).user = decoded;
+        verifyJwt(token);
         next();
-      } catch (error) {
-        next(new Error('Authentication error'));
+      } catch {
+        next(new Error('Unauthorized'));
       }
     });
 
@@ -67,39 +47,24 @@ class GatewayWebSocketServer {
         status: 'connected',
         at: new Date().toISOString()
       });
-      logger.info({ socketId: socket.id }, 'Client connected');
-
-      socket.on('disconnect', () => {
-        logger.info({ socketId: socket.id }, 'Client disconnected');
-      });
     });
 
     this.subscriber = redisClient.duplicate();
-    await this.subscriber.subscribe(...SUBSCRIBED_CHANNELS);
+
+    await this.subscriber.subscribe('transactions.live', 'fraud.alerts', 'simulation.events');
 
     this.subscriber.on('message', (channel, message) => {
       if (!this.io) return;
+
       try {
-        const parsed = JSON.parse(message);
-        // RealtimeEventBus wraps in { event, timestamp, payload }
-        // Emit the inner payload so frontend sees it at the top level,
-        // but also emit the full envelope so either format works.
-        const payloadToEmit = parsed?.payload ?? parsed;
-        this.io.emit(channel, payloadToEmit);
+        const payload = JSON.parse(message);
+        this.io.emit(channel, payload);
       } catch {
         logger.warn({ channel }, 'Failed to parse websocket payload');
       }
     });
 
-    logger.info({ channels: SUBSCRIBED_CHANNELS }, 'WebSocket server initialized');
-    this.initialized = true;
-  }
-
-  getStats(): { initialized: boolean; connectedClients: number } {
-    return {
-      initialized: this.initialized,
-      connectedClients: this.io?.engine.clientsCount ?? 0
-    };
+    logger.info('WebSocket server initialized');
   }
 }
 

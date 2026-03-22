@@ -13,44 +13,27 @@ import { httpRequestsTotal, register } from './utils/metrics';
 
 export const app = express();
 
-/**
- * REQUIRED for Azure Container Apps, reverse proxies, and load balancers.
- * This allows Express to correctly read X-Forwarded-* headers.
- */
-app.set('trust proxy', 1);
-
 app.disable('x-powered-by');
-
 app.use(helmet());
-
 app.use(
   cors({
     origin: env.ALLOWED_ORIGINS.split(',').map((v) => v.trim()),
     credentials: true
   })
 );
-
 app.use(express.json({ limit: '1mb' }));
-
 app.use(requestIdMiddleware);
-
 app.use(apiRateLimiter);
-
 app.use(
   pinoHttp({
     logger,
     genReqId: (req) => req.requestId
   })
 );
-
 app.use(morgan('combined'));
 
 app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'api-gateway',
-    timestamp: new Date().toISOString()
-  });
+  res.status(200).json({ status: 'ok', service: 'api-gateway' });
 });
 
 app.get('/metrics', async (_req: Request, res: Response) => {
@@ -60,15 +43,10 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.on('finish', () => {
-    httpRequestsTotal.inc({
-      method: req.method,
-      route: req.path,
-      status: String(res.statusCode)
-    });
+    httpRequestsTotal.inc({ method: req.method, route: req.path, status: String(res.statusCode) });
   });
   next();
 });
 
 app.use(router);
-
 app.use(errorHandler);

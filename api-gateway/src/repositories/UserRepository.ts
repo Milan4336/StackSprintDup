@@ -1,121 +1,15 @@
 import { UserDocument, UserModel } from '../models/User';
-import { AppError } from '../utils/errors';
 
 export class UserRepository {
-
-  async findByEmail(email: string, includeMfaSecret = false): Promise<UserDocument | null> {
-    const query = UserModel.findOne({ email });
-    if (includeMfaSecret) {
-      query.select('+mfaSecret');
-    }
-    return query.exec();
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return UserModel.findOne({ email });
   }
 
-  async findByEmailOrUserId(identifier: string, includeMfaSecret = false): Promise<UserDocument | null> {
-    const query = UserModel.findOne({
-      $or: [{ email: identifier }, { userId: identifier }]
-    });
-    if (includeMfaSecret) {
-      query.select('+mfaSecret');
-    }
-    return query.exec();
-  }
-
-  async markLoginSuccess(email: string, userIdFallback: string): Promise<void> {
-    const user = await UserModel.findOne({ email });
-    const finalUserId = user?.userId || userIdFallback || email;
-
-    await UserModel.updateOne(
+  async upsert(email: string, password: string, role: 'admin' | 'analyst'): Promise<UserDocument> {
+    return UserModel.findOneAndUpdate(
       { email },
-      {
-        $set: {
-          lastLogin: new Date(),
-          userId: finalUserId
-        }
-      }
-    ).exec();
-  }
-
-  async setMfaSecret(identifier: string, secret: string): Promise<void> {
-    await UserModel.updateOne(
-      {
-        $or: [{ email: identifier }, { userId: identifier }]
-      },
-      {
-        $set: {
-          mfaSecret: secret,
-          mfaEnabled: false
-        },
-        $unset: {
-          mfaVerifiedAt: ''
-        }
-      }
-    ).exec();
-  }
-
-  async setMfaEnabled(identifier: string, enabled: boolean, verifiedAt?: Date): Promise<void> {
-    await UserModel.updateOne(
-      {
-        $or: [{ email: identifier }, { userId: identifier }]
-      },
-      {
-        $set: {
-          mfaEnabled: enabled,
-          mfaVerifiedAt: verifiedAt
-        }
-      }
-    ).exec();
-  }
-
-  async upsert(
-    email: string,
-    password: string,
-    role: 'admin' | 'analyst' | 'user',
-    userId?: string
-  ): Promise<UserDocument> {
-
-    try {
-
-      // First check if user already exists
-      const existing = await UserModel.findOne({ email }).exec();
-
-      if (existing) {
-        throw new AppError('User already exists', 409); // ← was: return existing
-      }
-
-      // Create new user safely
-      const user = new UserModel({
-        userId: userId || email,
-        email,
-        password,
-        role,
-        status: 'ACTIVE',
-        riskScore: 0,
-        lastLogin: new Date(),
-        mfaEnabled: false
-      });
-
-      await user.save();
-
-      return user;
-
-    } catch (error: any) {
-
-      // Re-throw AppErrors as-is (including the 409 above)
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      // CosmosDB duplicate key handling (race condition fallback)
-      if (
-        error?.code === 11000 ||
-        error?.message?.includes('duplicate key') ||
-        error?.message?.includes('E11000')
-      ) {
-        throw new AppError('User already exists', 409);
-      }
-
-      throw new AppError('Failed to create user', 500);
-    }
+      { $set: { email, password, role } },
+      { upsert: true, new: true }
+    );
   }
 }

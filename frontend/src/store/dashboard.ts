@@ -1,10 +1,9 @@
 import { create } from 'zustand';
 import { Socket } from 'socket.io-client';
 import { monitoringApi, apiClient } from '../api/client';
-import { connectSocket, disconnectSocket } from '../services/socket';
+import { connectSocket, disconnectSocket, getSocket } from '../services/socket';
 import {
   FraudAlert,
-  FraudExplanation,
   FraudExplanationRecord,
   RiskLevel,
   Transaction,
@@ -42,59 +41,13 @@ interface DashboardState {
 
 const nextTxId = (): string => `tx-ui-${Date.now()}`;
 
-let liveUpdateTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingTransactions: Transaction[] = [];
-
-const MAX_TRANSACTIONS = 300;
-
-function updateStatsIncremental(
-  current: TransactionStats | null,
-  newTxs: Transaction[],
-  allTxs: Transaction[]
-): TransactionStats {
-  if (!current) {
-    const total = allTxs.length;
-    const fraudCount = allTxs.filter(tx => tx.isFraud).length;
-    const avgRiskScore = total
-      ? allTxs.reduce((sum, tx) => sum + tx.fraudScore, 0) / total
-      : 0;
-
-    const highRiskUsersMap = new Map<string, number>();
-    for (const tx of allTxs) {
-      if (tx.riskLevel !== 'High') continue;
-      highRiskUsersMap.set(tx.userId, (highRiskUsersMap.get(tx.userId) ?? 0) + 1);
-    }
-
-    const highRiskUsers = Array.from(highRiskUsersMap.entries())
-      .map(([userId, count]) => ({ userId, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
-
-    return {
-      fraudRate: total ? fraudCount / total : 0,
-      avgRiskScore,
-      highRiskUsers
-    };
-  }
-
-  let fraudCountDelta = 0;
-  let riskScoreDelta = 0;
-
-  for (const tx of newTxs) {
-    if (tx.isFraud) fraudCountDelta++;
-    riskScoreDelta += tx.fraudScore;
-  }
-
-  const total = allTxs.length;
-
-  const newAvg =
-    ((current.avgRiskScore * (total - newTxs.length)) + riskScoreDelta) / total;
-
-  const fraudRate =
-    ((current.fraudRate * (total - newTxs.length)) + fraudCountDelta) / total;
+const computeStatsFromTransactions = (transactions: Transaction[]): TransactionStats => {
+  const total = transactions.length;
+  const fraudCount = transactions.filter((tx) => tx.isFraud).length;
+  const avgRiskScore = total ? transactions.reduce((sum, tx) => sum + tx.fraudScore, 0) / total : 0;
 
   const highRiskUsersMap = new Map<string, number>();
-  for (const tx of allTxs) {
+  for (const tx of transactions) {
     if (tx.riskLevel !== 'High') continue;
     highRiskUsersMap.set(tx.userId, (highRiskUsersMap.get(tx.userId) ?? 0) + 1);
   }
@@ -105,11 +58,86 @@ function updateStatsIncremental(
     .slice(0, 6);
 
   return {
-    fraudRate,
-    avgRiskScore: newAvg,
+    fraudRate: total ? fraudCount / total : 0,
+    avgRiskScore,
     highRiskUsers
   };
-}
+};
+
+const mergeTransactionEvent = (event: Record<string, unknown>): Transaction => {
+  const riskLevel = (event.riskLevel as RiskLevel | undefined) ?? 'Low';
+  const explanationsRaw = Array.isArray(event.explanations) ? event.explanations : [];
+  const timestamp = safeDate(event.timestamp as string | number | Date | null)?.toISOString() ?? new Date().toISOString();
+
+  return {
+    transactionId: String(event.transactionId ?? `event-${Date.now()}`),
+    userId: String(event.userId ?? 'unknown-user'),
+    amount: Number(event.amount ?? 0),
+    currency: 'USD',
+    location: String(event.location ?? 'Unknown'),
+    latitude: typeof event.latitude === 'number' ? event.latitude : undefined,
+    longitude: typeof event.longitude === 'number' ? event.longitude : undefined,
+    deviceId: String(event.deviceId ?? 'unknown-device'),
+    ipAddress: '0.0.0.0',
+    timestamp,
+    fraudScore: Number(event.fraudScore ?? 0),
+    riskLevel,
+    isFraud: Boolean(event.isFraud ?? riskLevel === 'High'),
+    explanations: explanationsRaw as Transaction['explanations']
+  };
+};
+
+const upsertDeviceFromTransaction = (devices: UserDevice[], tx: Transaction): UserDevice[] => {
+  const nowIso = new Date().toISOString();
+  const lastSeen = tx.timestamp || nowIso;
+  const idx = devices.findIndex((device) => device.userId === tx.userId && device.deviceId === tx.deviceId);
+
+  if (idx === -1) {
+    const next: UserDevice = {
+      userId: tx.userId,
+      deviceId: tx.deviceId,
+      location: tx.location,
+      firstSeen: lastSeen,
+      lastSeen,
+      txCount: 1,
+      isSuspicious: tx.riskLevel === 'High' || tx.deviceId.startsWith('unknown'),
+      riskLevel: tx.riskLevel
+    };
+    return [next, ...devices].slice(0, 300);
+  }
+
+  const current = devices[idx];
+  const updated: UserDevice = {
+    ...current,
+    location: tx.location,
+    lastSeen,
+    txCount: (current.txCount ?? 0) + 1,
+    isSuspicious: current.isSuspicious || tx.riskLevel === 'High' || tx.deviceId.startsWith('unknown'),
+    riskLevel: tx.riskLevel === 'High' ? 'High' : current.riskLevel
+  };
+  const clone = [...devices];
+  clone[idx] = updated;
+  return clone;
+};
+
+const upsertExplanationFromTransaction = (
+  explanations: FraudExplanationRecord[],
+  tx: Transaction
+): FraudExplanationRecord[] => {
+  if (!tx.explanations?.length) {
+    return explanations;
+  }
+
+  const next: FraudExplanationRecord = {
+    transactionId: tx.transactionId,
+    userId: tx.userId,
+    fraudScore: tx.fraudScore,
+    explanations: tx.explanations,
+    createdAt: tx.timestamp || new Date().toISOString()
+  };
+
+  return [next, ...explanations.filter((item) => item.transactionId !== tx.transactionId)].slice(0, 200);
+};
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   transactions: [],
@@ -128,17 +156,16 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   loadDashboardData: async () => {
     set({ loading: true, error: null });
     try {
-      const [transactions, stats, alerts, devices, explanations] =
-        await Promise.all([
-          monitoringApi.getTransactions(MAX_TRANSACTIONS),
-          monitoringApi.getStats(),
-          monitoringApi.getAlerts(120),
-          monitoringApi.getDevices(240),
-          monitoringApi.getExplanations(120)
-        ]);
+      const [transactions, stats, alerts, devices, explanations] = await Promise.all([
+        monitoringApi.getTransactions(300),
+        monitoringApi.getStats(),
+        monitoringApi.getAlerts(120),
+        monitoringApi.getDevices(240),
+        monitoringApi.getExplanations(120)
+      ]);
 
       set({
-        transactions: transactions.slice(0, MAX_TRANSACTIONS),
+        transactions,
         stats,
         alerts,
         devices,
@@ -146,14 +173,17 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         loading: false,
         lastUpdated: new Date().toISOString()
       });
-    } catch {
-      set({ error: 'Failed to load dashboard', loading: false });
+    } catch (error) {
+      const fallback =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: string }).message)
+          : 'Failed to load dashboard';
+      set({ error: fallback, loading: false });
     }
   },
 
   createTransaction: async (input: CreateTxInput) => {
     set({ creating: true, error: null });
-
     try {
       const response = await apiClient.post<Transaction>('/transactions', {
         transactionId: nextTxId(),
@@ -167,19 +197,21 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       });
 
       const created = response.data;
-      const transactions = [created, ...get().transactions].slice(0, MAX_TRANSACTIONS);
-
+      const transactions = [created, ...get().transactions].slice(0, 500);
       set({
         transactions,
-        stats: updateStatsIncremental(get().stats, [created], transactions),
+        stats: computeStatsFromTransactions(transactions),
         creating: false,
         lastUpdated: new Date().toISOString()
       });
-
       return created;
-    } catch {
-      set({ creating: false, error: 'Failed to create transaction' });
-      throw new Error('Failed to create transaction');
+    } catch (error) {
+      const fallback =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: string }).message)
+          : 'Failed to create transaction';
+      set({ creating: false, error: fallback });
+      throw error;
     }
   },
 
@@ -190,8 +222,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   connectLive: () => {
-    if (get().socket) return;
-
+    const existing = getSocket() ?? get().socket;
+    if (existing) return;
     const socket = connectSocket();
 
     socket.on('connect', () => {
@@ -203,51 +235,37 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     });
 
     socket.on('transactions.live', (payload: Record<string, unknown>) => {
-      const tx: Transaction = {
-        transactionId: String(payload.transactionId ?? `event-${Date.now()}`),
-        userId: String(payload.userId ?? 'unknown'),
-        amount: Number(payload.amount ?? 0),
-        currency: 'USD',
-        location: String(payload.location ?? 'Unknown'),
-        deviceId: String(payload.deviceId ?? 'unknown-device'),
-        ipAddress: '0.0.0.0',
-        timestamp:
-          safeDate(payload.timestamp as string | number | Date | null)?.toISOString() ??
-          new Date().toISOString(),
-        fraudScore: Number(payload.fraudScore ?? 0),
-        riskLevel: (payload.riskLevel as RiskLevel) ?? 'Low',
-        isFraud: Boolean(payload.isFraud ?? false),
-        ruleReasons: Array.isArray(payload.ruleReasons) ? (payload.ruleReasons as string[]) : [],
-        explanations: (payload.explanations as FraudExplanation[]) ?? []
-      };
+      const tx = mergeTransactionEvent(payload);
+      const transactions = [tx, ...get().transactions.filter((item) => item.transactionId !== tx.transactionId)].slice(
+        0,
+        500
+      );
+      const devices = upsertDeviceFromTransaction(get().devices, tx);
+      const explanations = upsertExplanationFromTransaction(get().explanations, tx);
 
-      pendingTransactions.push(tx);
+      set({
+        transactions,
+        stats: computeStatsFromTransactions(transactions),
+        devices,
+        explanations,
+        lastUpdated: new Date().toISOString()
+      });
+    });
 
-      if (liveUpdateTimer) return;
+    socket.on('fraud.alerts', (payload: FraudAlert) => {
+      set({
+        alerts: [payload, ...get().alerts].slice(0, 200),
+        lastUpdated: new Date().toISOString()
+      });
+    });
 
-      liveUpdateTimer = setTimeout(() => {
-        const state = get();
-
-        let transactions = state.transactions;
-        const newTxs = pendingTransactions;
-
-        for (const item of newTxs) {
-          transactions = [
-            item,
-            ...transactions.filter(t => t.transactionId !== item.transactionId)
-          ].slice(0, MAX_TRANSACTIONS);
-        }
-
-        pendingTransactions = [];
-        liveUpdateTimer = null;
-
-        set({
-          transactions,
-          stats: updateStatsIncremental(state.stats, newTxs, transactions),
-          lastUpdated: new Date().toISOString()
-        });
-
-      }, 500);
+    socket.on('simulation.events', (payload: { type: string; count: number }) => {
+      set({
+        simulationMessage:
+          payload.type === 'simulation.completed'
+            ? `Simulation completed with ${payload.count} events.`
+            : `Simulation started for ${payload.count} events.`
+      });
     });
 
     set({ socket });
